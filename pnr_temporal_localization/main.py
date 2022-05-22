@@ -29,7 +29,7 @@ def main():
     #         DataLoader(train_dataset batch_size=4, pin_memory=True,
     #                    num_workers=8, shuffle=True)
 
-    train_dataset = PNRTempLocDataset(ann_dir="/Users/shionyamadate/Documents/ego4d_data/v1/annotations/")
+    train_dataset = PNRTempLocDataset(ann_dir="/Users/shionyamadate/Documents/ego4d_data/v1/annotations/", clip_dir='/Users/shionyamadate/Documents/ego4d_data/v1/clips/')
     print(train_dataset.flatten_json[0]["pnr_hands"])
 
     # model = CnnLstm(state=(state_change))
