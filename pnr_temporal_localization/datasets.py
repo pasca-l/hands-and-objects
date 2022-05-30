@@ -152,28 +152,6 @@ class PNRTempLocDataset(Dataset):
             writer.release()
             video.release()
 
-    # def _old_extract_action_clip_frame(self, info):
-    #     """
-    #     Saves all frames of 8s clips containing action.
-    #     """
-    #     start_frame = info["clip_start_frame"]
-    #     end_frame = info["clip_end_frame"]
-    #
-    #     frame_save_dir = f"{self.action_frame_dir}{info['clip_uid']}/"
-    #     os.makedirs(frame_save_dir, exist_ok=True)
-    #
-    #     video = cv2.VideoCapture(f"{self.clip_dir}{info['clip_uid']}.mp4")
-    #
-    #     for i in range(end_frame + 1):
-    #         ret, frame = video.read()
-    #         if ret == True and start_frame <= i:
-    #             frame_save_path = f"{frame_save_dir}{i}.png"
-    #             if os.path.exists(frame_save_path):
-    #                 continue
-    #             cv2.imwrite(frame_save_path, frame)
-    #
-    #     video.release()
-
     def _extract_action_clip_frame(self):
         """
         Saves all frames of 8s clips containing action.
