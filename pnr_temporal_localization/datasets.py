@@ -42,10 +42,9 @@ class PNRTempLocDataset(Dataset):
 
         self.flatten_json = self._unpack_json()
 
-        # for info in tqdm(self.flatten_json, desc='Trimming clip near action'):
-        #     self._trim_around_action(info)
-        for info in tqdm(self.flatten_json, desc='Extracting frames'):
-            self._extract_action_clip_frame(info)
+        # self._trim_around_action()
+        self._extract_action_clip_frame()
+
 
     def __len__(self):
         return len(self.flatten_json)
@@ -59,16 +58,22 @@ class PNRTempLocDataset(Dataset):
                           f"_{start_frame}_{end_frame}.mp4"
         video = cv2.VideoCapture(video_path)
         original_fps = video.get(cv2.CAP_PROP_FPS)
+        info["original_fps"] = original_fps
 
+        frames, labels, fps, frame_nums = self._sample_clip_with_label(info)
+        frames = torch.as_tensor(frames).permute(3, 0, 1, 2)
+        frames = self.transform(frames)
 
+        info["sample_frame_num"] = frame_nums
 
-        return
+        return frames, labels, None, fps, info
 
     def _unpack_json(self):
         """
         Unpacks annotation json file to list of dicts.
+        The target annotation file is "fho_hands_PHASE.json".
         """
-        flatten_json_list = list()
+        flatten_json_list = []
 
         json_data = json.load(open(self.json_file, 'r'))
         for data in tqdm(json_data['clips'], desc='Preparing data'):
@@ -121,56 +126,135 @@ class PNRTempLocDataset(Dataset):
         """
         Trims video to 8s clips containing action.
         """
-        start_frame = info["clip_start_frame"]
-        end_frame = info["clip_end_frame"]
-        video_save_path = f"{self.action_clip_dir}{info['clip_uid']}" +\
-                          f"_{start_frame}_{end_frame}.mp4"
+        for info in tqdm(self.flatten_json, desc='Trimming clip near action'):
+            start_frame = info["clip_start_frame"]
+            end_frame = info["clip_end_frame"]
+            video_save_path = f"{self.action_clip_dir}{info['clip_uid']}" +\
+                              f"_{start_frame}_{end_frame}.mp4"
 
-        if os.path.exists(video_save_path):
-            return "Video clip already exists"
+            if os.path.exists(video_save_path):
+                continue
 
-        video = cv2.VideoCapture(f"{self.clip_dir}{info['clip_uid']}.mp4")
-        fps = video.get(cv2.CAP_PROP_FPS)
-        v_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        v_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        v_size = (v_width, v_height)
+            video = cv2.VideoCapture(f"{self.clip_dir}{info['clip_uid']}.mp4")
+            fps = video.get(cv2.CAP_PROP_FPS)
+            v_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+            v_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            v_size = (v_width, v_height)
 
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        writer = cv2.VideoWriter(video_save_path, fourcc, fps, v_size)
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            writer = cv2.VideoWriter(video_save_path, fourcc, fps, v_size)
 
-        for i in range(end_frame + 1):
-            ret, frame = video.read()
-            if ret == True and start_frame <= i:
-                writer.write(frame)
+            for i in range(end_frame + 1):
+                ret, frame = video.read()
+                if ret == True and start_frame <= i:
+                    writer.write(frame)
 
-        writer.release()
-        video.release()
+            writer.release()
+            video.release()
 
-    def _extract_action_clip_frame(self, info):
+    # def _old_extract_action_clip_frame(self, info):
+    #     """
+    #     Saves all frames of 8s clips containing action.
+    #     """
+    #     start_frame = info["clip_start_frame"]
+    #     end_frame = info["clip_end_frame"]
+    #
+    #     frame_save_dir = f"{self.action_frame_dir}{info['clip_uid']}/"
+    #     os.makedirs(frame_save_dir, exist_ok=True)
+    #
+    #     video = cv2.VideoCapture(f"{self.clip_dir}{info['clip_uid']}.mp4")
+    #
+    #     for i in range(end_frame + 1):
+    #         ret, frame = video.read()
+    #         if ret == True and start_frame <= i:
+    #             frame_save_path = f"{frame_save_dir}{i}.png"
+    #             if os.path.exists(frame_save_path):
+    #                 continue
+    #             cv2.imwrite(frame_save_path, frame)
+    #
+    #     video.release()
+
+    def _extract_action_clip_frame(self):
         """
         Saves all frames of 8s clips containing action.
         """
-        start_frame = info["clip_start_frame"]
-        end_frame = info["clip_end_frame"]
+        frame_dict = {}
+        for info in tqdm(self.flatten_json, desc='Finding frames to extract'):
+            frame_dict.setdefault(info['clip_uid'], set())
 
-        frame_save_dir = f"{self.action_frame_dir}{info['clip_uid']}/"
-        os.makedirs(frame_save_dir, exist_ok=True)
+            start_frame = info["clip_start_frame"]
+            end_frame = info["clip_end_frame"]
+            frame_dict[info['clip_uid']] |=\
+                {i for i in range(start_frame, end_frame + 1)}
 
-        video = cv2.VideoCapture(f"{self.clip_dir}{info['clip_uid']}.mp4")
+        print(len(frame_dict))
 
-        for i in range(end_frame + 1):
-            ret, frame = video.read()
-            if ret == True and start_frame <= i:
-                frame_save_path = f"{frame_save_dir}{i}.png"
-                if os.path.exists(frame_save_path):
-                    continue
-                cv2.imwrite(frame_save_path, frame)
+        for clip_id, frame_nums in tqdm(frame_dict.items(),
+                                        desc='Extracting frames'):
+            frame_save_dir = f"{self.action_frame_dir}{clip_id}/"
+            os.makedirs(frame_save_dir, exist_ok=True)
 
-        video.release()
+            video = cv2.VideoCapture(f"{self.clip_dir}{clip_id}.mp4")
 
-    def _sample_clip_with_label(self, info, to_total_frames=10):
+            for i in range(end_frame + 1):
+                ret, frame = video.read()
+                if ret == True and i in frame_nums:
+                    frame_save_path = f"{frame_save_dir}{i}.png"
+                    if os.path.exists(frame_save_path):
+                        continue
+                    print(frame_save_path)
+                    cv2.imwrite(frame_save_path, frame)
+
+            video.release()
+
+    def _load_frame(self, frame_path):
+        frame = cv2.imread(frame_path)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.resize(frame, (224, 224))
+        frame = np.expand_dims(frame, axis=0).astype(np.float32)
+
+        return frame
+
+    def _sample_clip_with_label(self, info):
         random_start_frame, random_end_frame = _random_clipping(info, 5, 8)
-        sample_frame_num, frame_pnr_dist = _sample_out_frames()
+        sample_frame_num, frame_pnr_dist =\
+            _sample_out_frames(info, random_start_frame, random_end_frame)
+
+        frames = []
+        for frame_num in sample_frame_num:
+            frame_path = f"{self.action_frame_dir}{info['clip_uid']}" +\
+                         f"/{frame_num}.png"
+            image = self._load_frame(frame_num)
+            frames.append(image)
+
+        keyframe_idx = np.argmin(frame_pnr_dist)
+        onehot_label = np.zeros(len(sample_frame_num))
+        onehot_label[keyframe_idx] = 1
+
+        clipped_seconds = (random_end_frame - random_start_frame) / fps
+        effective_fps = len(sample_frame_num) / clipped_seconds
+
+        return (np.concatenate(frames), np.array(onehot_label),
+                    effective_fps, sample_frame_num)
 
     def _random_clipping(self, info, min_len, max_len=8):
+        fps = info["original_fps"]
+        random_size = np.random.randint(0, (max_len - min_len) * fps, 1)
+        random_pivot = np.random.randint(0, random_size, 1)
+        random_start_frame = random_pivot
+        random_end_frame = (max_len * fps) - (random_size - random_pivot)
+
         return random_start_frame, random_end_frame
+
+    def _sample_out_frames(self, info, start_frame, end_frame, to_total_frames=10):
+        pnr_frame = info['video_pnr_frame']
+        num_frames = end_frame - start_frame
+        sample_rate = num_frames // to_total_frames
+        sample_frame_num, frame_pnr_dist = [], []
+
+        for frame_count in range(start_frame, end_frame + 1):
+            if frame_count % sample_rate == 0:
+                sample_frame_num.append(frame_count)
+                frame_pnr_dist.append(np.abs(frame_count - pnr_frame))
+
+        return sample_frame_num, frame_pnr_dist
