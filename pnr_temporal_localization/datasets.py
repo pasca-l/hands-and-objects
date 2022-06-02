@@ -164,26 +164,19 @@ class PNRTempLocDataset(Dataset):
             frame_dict[info['clip_uid']] |=\
                 {i for i in range(start_frame, end_frame + 1)}
 
-        existing_frame_dict = {}
         existing_frame_dirs = [d for d in os.listdir(self.action_frame_dir)
                                if os.path.isdir(f"{self.action_frame_dir}{d}")]
-        for d in tqdm(existing_frame_dirs, desc='Recording existing files'):
+        for d in tqdm(existing_frame_dirs,
+                      desc='Excluding existing frames to extract'):
             try:
-                existing_frame_dict |=\
-                    {d:
-                     {int(f[:-4]) for f in os.listdir(
+                frame_dict[d] -=\
+                    {int(f[:-4]) for f in os.listdir(
                         f"{self.action_frame_dir}{d}")}
-                    }
-            except FileNotFoundError:
+            except KeyError:
                 continue
 
         for clip_id, frame_nums in tqdm(frame_dict.items(),
                                         desc='Extracting frames'):
-            try:
-                frame_nums -= existing_frame_dict[clip_id]
-            except KeyError:
-                pass
-
             if len(frame_nums) == 0:
                 continue
 
