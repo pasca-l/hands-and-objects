@@ -44,7 +44,7 @@ class PNRTempLocDataset(Dataset):
         self.flatten_json = self._unpack_json()
 
         # self._trim_around_action()
-        # self._extract_action_clip_frame()
+        self._extract_action_clip_frame()
 
 
     def __len__(self):
@@ -53,10 +53,6 @@ class PNRTempLocDataset(Dataset):
     def __getitem__(self, index):
         info = self.flatten_json[index]
 
-        # start_frame = info["clip_start_frame"]
-        # end_frame = info["clip_end_frame"]
-        # video_path = f"{self.action_clip_dir}{info['clip_uid']}" +\
-        #                   f"_{start_frame}_{end_frame}.mp4"
         video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
         video = cv2.VideoCapture(video_path)
         original_fps = video.get(cv2.CAP_PROP_FPS)
