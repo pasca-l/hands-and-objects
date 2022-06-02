@@ -1,7 +1,7 @@
 import os
 import argparse
 import cv2
-import mediapipe.solutions as mpsoln
+import mediapipe as mp
 
 
 def option_parser():
@@ -16,17 +16,22 @@ def option_parser():
 
 def main():
     args = option_parser()
+    os.makedirs(args.video_dir, exist_ok=True)
+    os.makedirs(args.video_save_dir, exist_ok=True)
 
-    hands = mpsoln.hands.Hands()
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+    mp_hands = mp.solutions.hands
+
+    hands = mp_hands.Hands()
 
     for video_name in os.listdir(args.video_dir):
         video_path = os.path.join(args.video_dir, video_name)
-        print(video_path)
-        break
-        video_save_path = os.path.join(args.video_save_dir, f"{video_name}.")
+        video_save_path = os.path.join(args.video_save_dir, video_name)
 
         video = cv2.VideoCapture(video_path)
         fps = video.get(cv2.CAP_PROP_FPS)
+        frame_count = video.get(cv2.CAP_PROP_FRAME_COUNT)
         v_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         v_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         v_size = (v_width, v_height)
@@ -34,30 +39,26 @@ def main():
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         writer = cv2.VideoWriter(video_save_path, fourcc, fps, v_size)
 
-        while True:
+        for i in range(int(frame_count - (frame_count % fps))):
             ret, frame = video.read()
+
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             result = hands.process(frame)
-
-            print(result.multi_hand_landmarks)
-
-            h, w, _ = frame.shape
-            annotated_frame = frame.copy()
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
             if not result.multi_hand_landmarks:
-                writer.write(annotated_frame)
+                writer.write(frame)
                 continue
 
             for hand_landmarks in result.multi_hand_landmarks:
-                print(hand_landmarks)
 
-                mpsoln.drawing_utils.draw_landmarks(
-                    annotated_frame, hand_landmarks,
-                    mpsoln.hands.HAND_CONNECTIONS,
-                    mpsoln.drawing_styles.get_default_hand_landmarks_style(),
-                    mpsoln.drawing_styles.get_default_hand_connections_style())
+                mp_drawing.draw_landmarks(
+                    frame, hand_landmarks,
+                    mp_hands.HAND_CONNECTIONS,
+                    mp_drawing_styles.get_default_hand_landmarks_style(),
+                    mp_drawing_styles.get_default_hand_connections_style())
 
-            writer.write(annotated_frame)
+            writer.write(frame)
 
         writer.release()
         video.release()
