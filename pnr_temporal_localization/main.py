@@ -1,8 +1,14 @@
 import os
 import argparse
 import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
 
 from datasets import PNRTempLocDataset
+
+from trainval import train, val
+from evaluate import evaluate, generate_submission_file, generate_submission_file_cls
+from models import CnnLstm
 
 
 def option_parser():
@@ -25,19 +31,36 @@ def main():
     #     criterion = nn.BCELoss().cuda()
     #     save_name = 'PNR_' + args.model_save_name
 
+    model = CnnLstm()
+    # model.cuda()
+
     if args.phase == 'train':
         train_dataset =\
             PNRTempLocDataset(ann_dir=args.ann_dir, clip_dir=args.clip_dir)
         train_dataloader =\
             DataLoader(train_dataset, batch_size=4, pin_memory=True,
                        num_workers=8, shuffle=True)
+        val_dataset =\
+            PNRTempLocDataset(phase='val', ann_dir=args.ann_dir,
+                              clip_dir=args.clip_dir)
+        val_dataloader =\
+            DataLoader(train_dataset, batch_size=1, pin_memory=True,
+                       num_workers=8)
 
-    model = CnnLstm()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-    best_loss = 99999
-    best_epoch = 0
-    for epoch in range(10):
-        pass
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+        criterion = nn.BCELoss().cuda()
+        best_loss = 99999
+        best_epoch = 0
+        for epoch in range(10):
+            train(model, train_dataloader, optimizer, criterion, epoch)
+            # torch.save(model.state_dict(), 'epoch_%d_'%epoch+args.save_name)
+
+            loss, _, _ = val(model, val_dataloader, criterion, epoch)
+            if loss < best_loss:
+                best_loss = loss
+                best_epoch = epoch
+                torch.save(model.state_dict(), args.model_save_name)
+                print('best model at epoch %d' % best_epoch)
 
 
 if __name__ == '__main__':

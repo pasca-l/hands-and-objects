@@ -23,7 +23,7 @@ def forward_reimpl(self, x):
 
 class CnnLstm(nn.Module):
     def __init__(self, hidden_size=512, num_layers=1, state=False):
-        super(cnnlstm, self).__init__()
+        super(CnnLstm, self).__init__()
         self.backbone = torchvision.models.resnet50(pretrained=True)
         self.backbone.fc = None
         self.lstm = nn.LSTM(2048, hidden_size, num_layers=num_layers, batch_first=True, bidirectional=True)

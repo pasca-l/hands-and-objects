@@ -2,6 +2,7 @@ import os
 import json
 from tqdm import tqdm
 import cv2
+import numpy as np
 
 import torch
 from torch.utils.data import Dataset
@@ -19,8 +20,8 @@ class FrameTransform():
 
 
 class PNRTempLocDataset(Dataset):
-    def __init__(self, phase='train', transform=None, ann_dir=None,
-                 ann_task_name='fho_hands', clip_dir=None):
+    def __init__(self, phase='train', ann_dir=None, clip_dir=None,
+                 ann_task_name='fho_hands'):
         self.phase = phase
         self.train_json_file = f"{ann_dir}{ann_task_name}_train.json"
         self.val_json_file = f"{ann_dir}{ann_task_name}_val.json"
@@ -38,24 +39,25 @@ class PNRTempLocDataset(Dataset):
         self.action_frame_dir = f"{clip_dir}action_frames/"
         os.makedirs(self.action_frame_dir, exist_ok=True)
 
-        self.transform = transform
+        self.transform = FrameTransform()
 
         self.flatten_json = self._unpack_json()
 
         # self._trim_around_action()
-        self._extract_action_clip_frame()
+        # self._extract_action_clip_frame()
 
 
     def __len__(self):
         return len(self.flatten_json)
 
     def __getitem__(self, index):
-        info = self.package[index]
+        info = self.flatten_json[index]
 
-        start_frame = info["clip_start_frame"]
-        end_frame = info["clip_end_frame"]
-        video_path = f"{self.action_clip_dir}{info['clip_uid']}" +\
-                          f"_{start_frame}_{end_frame}.mp4"
+        # start_frame = info["clip_start_frame"]
+        # end_frame = info["clip_end_frame"]
+        # video_path = f"{self.action_clip_dir}{info['clip_uid']}" +\
+        #                   f"_{start_frame}_{end_frame}.mp4"
+        video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
         video = cv2.VideoCapture(video_path)
         original_fps = video.get(cv2.CAP_PROP_FPS)
         info["original_fps"] = original_fps
@@ -65,8 +67,9 @@ class PNRTempLocDataset(Dataset):
         frames = self.transform(frames)
 
         info["sample_frame_num"] = frame_nums
+        info["effective_fps"] = fps
 
-        return frames, labels, None, fps, info
+        return frames, labels, info
 
     def _unpack_json(self):
         """
@@ -122,7 +125,7 @@ class PNRTempLocDataset(Dataset):
         print(f"Contained {len(flatten_json_list)} actions.")
         return flatten_json_list
 
-    def _trim_around_action(self, info):
+    def _trim_around_action(self):
         """
         Trims video to 8s clips containing action.
         """
@@ -165,10 +168,29 @@ class PNRTempLocDataset(Dataset):
             frame_dict[info['clip_uid']] |=\
                 {i for i in range(start_frame, end_frame + 1)}
 
-        print(len(frame_dict))
+        existing_frame_dict = {}
+        existing_frame_dirs = [d for d in os.listdir(self.action_frame_dir)
+                               if os.path.isdir(f"{self.action_frame_dir}{d}")]
+        for d in tqdm(existing_frame_dirs, desc='Recording existing files'):
+            try:
+                existing_frame_dict |=\
+                    {d:
+                     {int(f[:-4]) for f in os.listdir(
+                        f"{self.action_frame_dir}{d}")}
+                    }
+            except FileNotFoundError:
+                continue
 
         for clip_id, frame_nums in tqdm(frame_dict.items(),
                                         desc='Extracting frames'):
+            try:
+                frame_nums -= existing_frame_dict[clip_id]
+            except KeyError:
+                pass
+
+            if len(frame_nums) == 0:
+                continue
+
             frame_save_dir = f"{self.action_frame_dir}{clip_id}/"
             os.makedirs(frame_save_dir, exist_ok=True)
 
@@ -180,7 +202,6 @@ class PNRTempLocDataset(Dataset):
                     frame_save_path = f"{frame_save_dir}{i}.png"
                     if os.path.exists(frame_save_path):
                         continue
-                    print(frame_save_path)
                     cv2.imwrite(frame_save_path, frame)
 
             video.release()
@@ -194,15 +215,21 @@ class PNRTempLocDataset(Dataset):
         return frame
 
     def _sample_clip_with_label(self, info):
-        random_start_frame, random_end_frame = _random_clipping(info, 5, 8)
+        random_start_frame, random_end_frame =\
+            self._random_clipping(info, 5, 8)
         sample_frame_num, frame_pnr_dist =\
-            _sample_out_frames(info, random_start_frame, random_end_frame)
+            self._sample_out_frames(
+                info, random_start_frame, random_end_frame, 10)
 
         frames = []
         for frame_num in sample_frame_num:
             frame_path = f"{self.action_frame_dir}{info['clip_uid']}" +\
                          f"/{frame_num}.png"
-            image = self._load_frame(frame_num)
+            try:
+                image = self._load_frame(frame_path)
+            except:
+                print(f"Image does not exist : {frame_path}")
+                return
             frames.append(image)
 
         keyframe_idx = np.argmin(frame_pnr_dist)
@@ -222,9 +249,9 @@ class PNRTempLocDataset(Dataset):
         random_start_frame = random_pivot
         random_end_frame = (max_len * fps) - (random_size - random_pivot)
 
-        return random_start_frame, random_end_frame
+        return int(random_start_frame), int(random_end_frame)
 
-    def _sample_out_frames(self, info, start_frame, end_frame, to_total_frames=10):
+    def _sample_out_frames(self, info, start_frame, end_frame, to_total_frames):
         pnr_frame = info['video_pnr_frame']
         num_frames = end_frame - start_frame
         sample_rate = num_frames // to_total_frames
