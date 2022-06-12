@@ -23,7 +23,8 @@ def main():
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_hands = mp.solutions.hands
 
-    hands = mp_hands.Hands(min_detection_confidence=0.0, min_tracking_confidence=0.1)
+    hands = mp_hands.Hands(min_detection_confidence=0.0, 
+                           min_tracking_confidence=0.1)
 
     for video_name in os.listdir(args.video_dir):
         video_path = os.path.join(args.video_dir, video_name)
