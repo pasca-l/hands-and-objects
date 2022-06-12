@@ -1,5 +1,4 @@
-video_input/*
-video_annotated/*
+*.mp4
 
 mediapipe-silicon/
 mp_venv/
