@@ -32,7 +32,7 @@ def main():
     #     save_name = 'PNR_' + args.model_save_name
 
     model = CnnLstm()
-    # model.cuda()
+    model.cuda()
 
     if args.phase == 'train':
         train_dataset =\
@@ -44,7 +44,7 @@ def main():
             PNRTempLocDataset(phase='val', ann_dir=args.ann_dir,
                               clip_dir=args.clip_dir)
         val_dataloader =\
-            DataLoader(train_dataset, batch_size=1, pin_memory=True,
+            DataLoader(val_dataset, batch_size=1, pin_memory=True,
                        num_workers=8)
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
