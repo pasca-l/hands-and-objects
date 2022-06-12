@@ -44,7 +44,7 @@ class PNRTempLocDataset(Dataset):
         self.flatten_json = self._unpack_json()
 
         # self._trim_around_action()
-        self._extract_action_clip_frame()
+        # self._extract_action_clip_frame()
 
 
     def __len__(self):
@@ -77,6 +77,13 @@ class PNRTempLocDataset(Dataset):
         json_data = json.load(open(self.json_file, 'r'))
         for data in tqdm(json_data['clips'], desc='Preparing data'):
             for frame_data in data['frames']:
+                # ------------
+                try:
+                    frame_data['pnr_frame']
+                except KeyError:
+                    continue
+                # ------------
+
                 json_dict = {
                     "clip_id": data['clip_id'],
                     "clip_uid": data['clip_uid'],
@@ -89,32 +96,34 @@ class PNRTempLocDataset(Dataset):
                     "clip_end_sec": frame_data['action_clip_end_sec'],
                     "clip_start_frame": frame_data['action_clip_start_frame'],
                     "clip_end_frame": frame_data['action_clip_end_frame'],
+                    # ---------
+                    "clip_pnr_frame": frame_data['pnr_frame']['clip_frame']
                 }
 
-                frame_alias_dict = {
-                    'pre_45': "pre45",
-                    'pre_30': "pre30",
-                    'pre_15': "pre15",
-                    'pre_frame': "pre",
-                    'post_frame': "post",
-                    'pnr_frame': "pnr"
-                }
-                for frame_type, alias in frame_alias_dict.items():
-                    try:
-                        temp_data = frame_data[frame_type]
-                    except KeyError:
-                        temp_dict = {
-                            f"video_{alias}_frame": None,
-                            f"clip_{alias}_frame": None,
-                            f"{alias}_hands": None,
-                        }
-                    else:
-                        temp_dict = {
-                            f"video_{alias}_frame": temp_data['frame'],
-                            f"clip_{alias}_frame": temp_data['clip_frame'],
-                            f"{alias}_hands": temp_data['boxes'],
-                        }
-                    json_dict |= temp_dict
+                # frame_alias_dict = {
+                #     'pre_45': "pre45",
+                #     'pre_30': "pre30",
+                #     'pre_15': "pre15",
+                #     'pre_frame': "pre",
+                #     'post_frame': "post",
+                #     'pnr_frame': "pnr"
+                # }
+                # for frame_type, alias in frame_alias_dict.items():
+                #     try:
+                #         temp_data = frame_data[frame_type]
+                #     except KeyError:
+                #         temp_dict = {
+                #             f"video_{alias}_frame": None,
+                #             f"clip_{alias}_frame": None,
+                #             f"{alias}_hands": None,
+                #         }
+                #     else:
+                #         temp_dict = {
+                #             f"video_{alias}_frame": temp_data['frame'],
+                #             f"clip_{alias}_frame": temp_data['clip_frame'],
+                #             f"{alias}_hands": temp_data['boxes'],
+                #         }
+                #     json_dict |= temp_dict
 
                 flatten_json_list.append(json_dict)
 
@@ -204,11 +213,16 @@ class PNRTempLocDataset(Dataset):
         return frame
 
     def _sample_clip_with_label(self, info):
+        fps = info["original_fps"]
+        start_frame = info["clip_start_frame"]
+        pnr_frame = info["clip_pnr_frame"]
+
         random_start_frame, random_end_frame =\
-            self._random_clipping(info, 5, 8)
+            self._random_clipping(
+                fps, pnr_frame, start_frame, min_len=5, max_len=7)
         sample_frame_num, frame_pnr_dist =\
             self._sample_out_frames(
-                info, random_start_frame, random_end_frame, 10)
+                pnr_frame, random_start_frame, random_end_frame, 5)
 
         frames = []
         for frame_num in sample_frame_num:
@@ -231,24 +245,36 @@ class PNRTempLocDataset(Dataset):
         return (np.concatenate(frames), np.array(onehot_label),
                     effective_fps, sample_frame_num)
 
-    def _random_clipping(self, info, min_len, max_len=8):
-        fps = info["original_fps"]
-        random_size = np.random.randint(0, (max_len - min_len) * fps, 1)
-        random_pivot = np.random.randint(0, random_size, 1)
-        random_start_frame = random_pivot
-        random_end_frame = (max_len * fps) - (random_size - random_pivot)
+    def _random_clipping(self, fps, pnr, start_frame, min_len, max_len=8):
+        random_size = np.random.randint(min_len * fps, max_len * fps, 1)
+        random_pivot = np.random.randint(0, max_len * fps - random_size, 1)
+        random_start_frame = random_pivot + start_frame
+        random_end_frame = random_pivot + start_frame + random_size
+
+        offset = 0
+        if pnr < random_start_frame:
+            offset = pnr - random_start_frame
+        if pnr > random_end_frame:
+            offset = pnr - random_end_frame
+        random_start_frame += offset
+        random_end_frame += offset
 
         return int(random_start_frame), int(random_end_frame)
 
-    def _sample_out_frames(self, info, start_frame, end_frame, to_total_frames):
-        pnr_frame = info['video_pnr_frame']
+    def _sample_out_frames(self, pnr, start_frame, end_frame, to_total_frames):
         num_frames = end_frame - start_frame
         sample_rate = num_frames // to_total_frames
         sample_frame_num, frame_pnr_dist = [], []
 
-        for frame_count in range(start_frame, end_frame + 1):
-            if frame_count % sample_rate == 0:
-                sample_frame_num.append(frame_count)
-                frame_pnr_dist.append(np.abs(frame_count - pnr_frame))
+        if pnr - start_frame < end_frame - pnr:
+            frame_list = range(start_frame, end_frame + 1)
+        else:
+            frame_list = range(end_frame, start_frame + 1, -1)
 
-        return sample_frame_num, frame_pnr_dist
+        for counter, frame_num in enumerate(frame_list):
+            if counter % sample_rate == 0:
+                sample_frame_num.append(frame_num)
+                frame_pnr_dist.append(np.abs(frame_num - pnr))
+
+        return (sample_frame_num[:to_total_frames], 
+                frame_pnr_dist[:to_total_frames])
