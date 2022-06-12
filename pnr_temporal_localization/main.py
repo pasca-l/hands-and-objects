@@ -45,7 +45,7 @@ def main():
                               clip_dir=args.clip_dir)
         val_dataloader =\
             DataLoader(val_dataset, batch_size=1, pin_memory=True,
-                       num_workers=8) 
+                       num_workers=8)
 
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
         criterion = nn.BCELoss().cuda()
