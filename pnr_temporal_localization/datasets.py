@@ -44,8 +44,7 @@ class PNRTempLocDataset(Dataset):
         self.flatten_json = self._unpack_json()
 
         # self._trim_around_action()
-        # self._extract_action_clip_frame()
-
+        self._extract_action_clip_frame()
 
     def __len__(self):
         return len(self.flatten_json)
@@ -194,13 +193,15 @@ class PNRTempLocDataset(Dataset):
 
             video = cv2.VideoCapture(f"{self.clip_dir}{clip_id}.mp4")
 
-            for i in range(end_frame + 1):
+            counter = 1
+            while True:
                 ret, frame = video.read()
-                if ret == True and i in frame_nums:
-                    frame_save_path = f"{frame_save_dir}{i}.png"
-                    if os.path.exists(frame_save_path):
-                        continue
+                if ret == False:
+                    break
+                if counter in frame_nums:
+                    frame_save_path = f"{frame_save_dir}{counter}.png"
                     cv2.imwrite(frame_save_path, frame)
+                counter += 1
 
             video.release()
 
