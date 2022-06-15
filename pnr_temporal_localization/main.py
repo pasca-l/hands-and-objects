@@ -17,8 +17,8 @@ def option_parser():
     parser.add_argument('--phase', type=str, default='train',
                         choices=['train', 'test'])
     parser.add_argument('--model_save_name', type=str, default='cnn_lstm.pth')
-    parser.add_argument('--ann_dir', type=str, default='/Users/shionyamadate/Documents/ego4d_data/v1/annotations/')
-    parser.add_argument('--clip_dir', type=str, default='/Users/shionyamadate/Documents/ego4d_data/v1/clips/')
+    parser.add_argument('--ann_dir', type=str, default='../../../data/ego4d/annotations/')
+    parser.add_argument('--clip_dir', type=str, default='../../../data/ego4d/clips/')
 
     return parser.parse_args()
 
