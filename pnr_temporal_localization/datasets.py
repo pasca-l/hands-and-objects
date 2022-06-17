@@ -44,7 +44,7 @@ class PNRTempLocDataset(Dataset):
         self.flatten_json = self._unpack_json()
 
         # self._trim_around_action()
-        self._extract_action_clip_frame()
+        # self._extract_action_clip_frame()
 
     def __len__(self):
         return len(self.flatten_json)
@@ -52,10 +52,10 @@ class PNRTempLocDataset(Dataset):
     def __getitem__(self, index):
         info = self.flatten_json[index]
 
-        video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
-        video = cv2.VideoCapture(video_path)
-        original_fps = video.get(cv2.CAP_PROP_FPS)
-        info["original_fps"] = original_fps
+        # video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
+        # video = cv2.VideoCapture(video_path)
+        # info["original_fps"] = video.get(cv2.CAP_PROP_FPS)
+        # print(video_path, video.get(cv2.CAP_PROP_FPS))
 
         frames, labels, fps, frame_nums = self._sample_clip_with_label(info)
         frames = torch.as_tensor(frames).permute(3, 0, 1, 2)
@@ -214,16 +214,19 @@ class PNRTempLocDataset(Dataset):
         return frame
 
     def _sample_clip_with_label(self, info):
-        fps = info["original_fps"]
-        start_frame = info["clip_start_frame"]
+        # fps = info["original_fps"]
         pnr_frame = info["clip_pnr_frame"]
+        start_frame = info["clip_start_frame"]
+        end_frame = info["clip_end_frame"]
 
-        random_start_frame, random_end_frame =\
+        random_start_frame, random_end_frame, random_size, random_pivot =\
             self._random_clipping(
-                fps, pnr_frame, start_frame, min_len=5, max_len=7)
-        sample_frame_num, frame_pnr_dist =\
+                pnr_frame, start_frame, end_frame, min_ratio=0.6)
+        frame_range, sample_frame_num, frame_pnr_dist =\
             self._sample_out_frames(
                 pnr_frame, random_start_frame, random_end_frame, 5)
+
+        print(start_frame, frame_range, random_size, random_pivot, sample_frame_num, end_frame)
 
         frames = []
         for frame_num in sample_frame_num:
@@ -240,15 +243,17 @@ class PNRTempLocDataset(Dataset):
         onehot_label = np.zeros(len(sample_frame_num))
         onehot_label[keyframe_idx] = 1
 
-        clipped_seconds = (random_end_frame - random_start_frame) / fps
+        clipped_seconds = (random_end_frame - random_start_frame) / 30
         effective_fps = len(sample_frame_num) / clipped_seconds
 
         return (np.concatenate(frames), np.array(onehot_label),
                     effective_fps, sample_frame_num)
 
-    def _random_clipping(self, fps, pnr, start_frame, min_len, max_len=8):
-        random_size = np.random.randint(min_len * fps, max_len * fps, 1)
-        random_pivot = np.random.randint(0, max_len * fps - random_size, 1)
+    def _random_clipping(self, pnr, start_frame, end_frame, min_ratio):
+        max_len = end_frame - start_frame
+        min_len = int((end_frame - start_frame) * min_ratio)
+        random_size = np.random.randint(min_len, max_len, 1)
+        random_pivot = np.random.randint(0, max_len - random_size, 1)
         random_start_frame = random_pivot + start_frame
         random_end_frame = random_pivot + start_frame + random_size
 
@@ -260,7 +265,7 @@ class PNRTempLocDataset(Dataset):
         random_start_frame += offset
         random_end_frame += offset
 
-        return int(random_start_frame), int(random_end_frame)
+        return int(random_start_frame), int(random_end_frame), random_size, random_pivot
 
     def _sample_out_frames(self, pnr, start_frame, end_frame, to_total_frames):
         num_frames = end_frame - start_frame
@@ -268,14 +273,14 @@ class PNRTempLocDataset(Dataset):
         sample_frame_num, frame_pnr_dist = [], []
 
         if pnr - start_frame < end_frame - pnr:
-            frame_list = range(start_frame, end_frame + 1)
+            frame_range = range(start_frame, end_frame + 1)
         else:
-            frame_list = range(end_frame, start_frame + 1, -1)
+            frame_range = range(end_frame, start_frame + 1, -1)[::-1]
 
-        for counter, frame_num in enumerate(frame_list):
+        for counter, frame_num in enumerate(frame_range):
             if counter % sample_rate == 0:
                 sample_frame_num.append(frame_num)
                 frame_pnr_dist.append(np.abs(frame_num - pnr))
 
-        return (sample_frame_num[:to_total_frames], 
+        return (frame_range, sample_frame_num[:to_total_frames], 
                 frame_pnr_dist[:to_total_frames])
