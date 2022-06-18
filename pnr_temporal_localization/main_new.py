@@ -2,8 +2,8 @@ import argparse
 import pytorch_lightning as pl
 
 from dataset_module import PNRTempLocDataModule
-from models import CnnLstm
-from system import AllergyClassifier
+from models.cnnlstm import CnnLstm
+from system import PNRLocalizer
 
 
 def option_parser():
@@ -28,7 +28,7 @@ def main():
         batch_size=4
     )
     model = CnnLstm()
-    classifier = AllergyClassifier(model)
+    classifier = PNRLocalizer(model)
 
     logger = pl.loggers.TensorBoardLogger(
         save_dir='../logs/',

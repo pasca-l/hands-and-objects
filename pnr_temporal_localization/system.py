@@ -3,21 +3,21 @@ import torch.nn.functional as nnf
 import pytorch_lightning as pl
 
 
-class AllergyClassifier(pl.LightningModule):
+class PNRLocalizer(pl.LightningModule):
     def __init__(self, model):
         super().__init__()
         self.model = model
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        x, y = batch[0], batch[1].float()
         y_hat = self.model(x)
-        loss = nnf.BCELoss(y_hat, y)
+        loss = nnf.binary_cross_entropy(y_hat, y)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        x, y = batch[0], batch[1].float()
         y_hat = self.model(x)
-        loss = nnf.BCELoss(y_hat, y)
+        loss = nnf.binary_cross_entropy(y_hat, y)
         self.log("val_loss", loss)
 
     def configure_optimizers(self):

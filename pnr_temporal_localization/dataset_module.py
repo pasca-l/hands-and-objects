@@ -103,7 +103,8 @@ class PNRTempLocDataset(Dataset):
         return frames, labels, info
 
     def _sample_clip_with_label(self, info):
-        fps = info["original_fps"]
+        # fps = info["original_fps"]
+        fps = 30
         start_frame = info["clip_start_frame"]
         end_frame = info["clip_end_frame"]
         pnr_frame = info["clip_pnr_frame"]
@@ -134,7 +135,7 @@ class PNRTempLocDataset(Dataset):
         effective_fps = len(sample_frame_num) / clipped_seconds
 
         return (np.concatenate(frames), np.array(onehot_label),
-                    effective_fps, sample_frame_num)
+                effective_fps, sample_frame_num)
 
     def _random_clipping(self, pnr, start_frame, end_frame, min_ratio):
         max_len = end_frame - start_frame
