@@ -1,14 +1,10 @@
-import os
 import argparse
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
+import pytorch_lightning as pl
 
-from datasets import PNRTempLocDataset
-
-from trainval import train, val
-from evaluate import evaluate, generate_submission_file, generate_submission_file_cls
-from models import CnnLstm
+from dataset_module import PNRTempLocDataModule
+from models.cnnlstm import CnnLstm
+# from models.SFP.slowfastpreceiver import SlowFastPreceiver
+from system import PNRLocalizer
 
 
 def option_parser():
@@ -18,7 +14,7 @@ def option_parser():
                         choices=['train', 'test'])
     parser.add_argument('--model_save_name', type=str, default='cnn_lstm.pth')
     parser.add_argument('--ann_dir', type=str, default='../../../data/ego4d/annotations/')
-    parser.add_argument('--clip_dir', type=str, default='../../../data/ego4d/clips/')
+    parser.add_argument('--data_dir', type=str, default='../../../data/ego4d/clips/')
 
     return parser.parse_args()
 
@@ -26,41 +22,37 @@ def option_parser():
 def main():
     args = option_parser()
 
-    # if args.task == 'PNR':
-    #     state_change = True
-    #     criterion = nn.BCELoss().cuda()
-    #     save_name = 'PNR_' + args.model_save_name
-
+    dataset = PNRTempLocDataModule(
+        data_dir=args.data_dir,
+        ann_dir=args.ann_dir,
+        ann_task_name="fho_hands",
+        batch_size=4
+    )
     model = CnnLstm()
-    model.cuda()
+    # model = SlowFastPreceiver()
+    classifier = PNRLocalizer(model)
 
-    if args.phase == 'train':
-        train_dataset =\
-            PNRTempLocDataset(ann_dir=args.ann_dir, clip_dir=args.clip_dir)
-        train_dataloader =\
-            DataLoader(train_dataset, batch_size=4, pin_memory=True,
-                       num_workers=8, shuffle=True)
-        val_dataset =\
-            PNRTempLocDataset(phase='val', ann_dir=args.ann_dir,
-                              clip_dir=args.clip_dir)
-        val_dataloader =\
-            DataLoader(val_dataset, batch_size=1, pin_memory=True,
-                       num_workers=8)
+    logger = pl.loggers.TensorBoardLogger(
+        save_dir="./logs/"
+    )
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        save_top_k=1,
+        save_weights_only=True,
+        monitor="train_loss",
+        mode='min',
+        dirpath="./logs/",
+        filename="trained_model"
+    )
+    trainer = pl.Trainer(
+        accelerator='auto',
+        devices='auto',
+        auto_select_gpus=True,
+        max_epochs=10,
+        logger=logger,
+        callbacks=[checkpoint_callback]
+    )
 
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-        criterion = nn.BCELoss().cuda()
-        best_loss = 99999
-        best_epoch = 0
-        for epoch in range(10):
-            train(model, train_dataloader, optimizer, criterion, epoch)
-            # torch.save(model.state_dict(), 'epoch_%d_'%epoch+args.save_name)
-
-            loss, _, _ = val(model, val_dataloader, criterion, epoch)
-            if loss < best_loss:
-                best_loss = loss
-                best_epoch = epoch
-                torch.save(model.state_dict(), args.model_save_name)
-                print('best model at epoch %d' % best_epoch)
+    trainer.fit(classifier, dataset)
 
 
 if __name__ == '__main__':

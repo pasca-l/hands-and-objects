@@ -6,7 +6,7 @@ from torchvision import transforms
 import pytorch_lightning as pl
 
 from json_handler import JsonHandler
-from video_extraction import Extractor
+from video_extractor import Extractor
 
 
 class PNRTempLocDataModule(pl.LightningDataModule):
@@ -74,9 +74,7 @@ class PNRTempLocDataset(Dataset):
         self.json_file = path_dict[f"{phase}_json"]
         self.action_frame_dir = f"{self.data_dir}action_frames/"
 
-        self.transform = transforms.Compose([
-            transforms.Normalize([0.45],[0.225])
-        ])
+        self.transform = FrameTransform()
 
         self.flatten_json = json_handler(self.json_file)
         if extraction:
@@ -186,3 +184,13 @@ class PNRTempLocDataset(Dataset):
         frame = np.expand_dims(frame, axis=0).astype(np.float32)
 
         return frame
+
+
+class FrameTransform():
+    def __init__(self):
+        self.data_transform = transforms.Compose([
+            transforms.Normalize([0.45],[0.225])
+        ])
+
+    def __call__(self, frame):
+        return self.data_transform(frame)
