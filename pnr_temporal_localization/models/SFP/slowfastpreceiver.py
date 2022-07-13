@@ -1,16 +1,17 @@
 import torch.nn as nn
 
-from helper.stem_helper import VideoModelStem
-from helper.fuse_helper import FuseFastToSlow
-from helper.resnet_helper import ResStage
-from helper.transformer_helper import Perceiver
+from models.SFP.helper.stem_helper import VideoModelStem
+from models.SFP.helper.fuse_helper import FuseFastToSlow
+from models.SFP.helper.resnet_helper import ResStage
+from models.SFP.helper.transformer_helper import Perceiver
 
 
 class SlowFastPreceiver(nn.Module):
     def __init__(self):
         super().__init__()
-        self.norm_module = nn.BatchNorm3d()
+        self.norm_module = nn.BatchNorm3d
         self.num_pathways = 2
+        self.enable_detection = True
         self._construct_network()
         self._init_weight()
 
@@ -72,8 +73,8 @@ class SlowFastPreceiver(nn.Module):
             nonlocal_inds=[[], []],
             nonlocal_group=[1, 1],
             nonlocal_pool=None,
-            instantiation=dot_product,
-            trans_func_name=bottleneck_transform,
+            instantiation='dot_product',
+            trans_func_name='bottleneck_transform',
             dilation=[1, 1],
             norm_module=self.norm_module
         )
@@ -108,8 +109,8 @@ class SlowFastPreceiver(nn.Module):
             nonlocal_inds=[[], []],
             nonlocal_group=[1, 1],
             nonlocal_pool=None,
-            instantiation=dot_product,
-            trans_func_name=bottleneck_transform,
+            instantiation='dot_product',
+            trans_func_name='bottleneck_transform',
             dilation=[1, 1],
             norm_module=self.norm_module
         )
@@ -136,8 +137,8 @@ class SlowFastPreceiver(nn.Module):
             nonlocal_inds=[[], []],
             nonlocal_group=[1, 1],
             nonlocal_pool=None,
-            instantiation=dot_product,
-            trans_func_name=bottleneck_transform,
+            instantiation='dot_product',
+            trans_func_name='bottleneck_transform',
             dilation=[1, 1],
             norm_module=self.norm_module
         )
@@ -164,8 +165,8 @@ class SlowFastPreceiver(nn.Module):
             nonlocal_inds=[[], []],
             nonlocal_group=[1, 1],
             nonlocal_pool=None,
-            instantiation=dot_product,
-            trans_func_name=bottleneck_transform,
+            instantiation='dot_product',
+            trans_func_name='bottleneck_transform',
             dilation=[1, 1],
             norm_module=self.norm_module
         )
@@ -254,18 +255,16 @@ class SlowFastPreceiver(nn.Module):
                 if m.bias is not None:
                     m.bias.data.zero_()
 
-    def c2_xavier_fill(self, module: nn.Module):
-            """
-            Initialize `module.weight` using the "XavierFill" implemented in Caffe2.
-            Also initializes `module.bias` to 0.
-            Args:
-                module (torch.nn.Module): module to initialize.
-            """
-            # Caffe2 implementation of XavierFill in fact
-            # corresponds to kaiming_uniform_ in PyTorch
-            # pyre-fixme[6]: For 1st param expected `Tensor` but got `Union[Module, Tensor]`.
-            nn.init.kaiming_uniform_(module.weight, a=1)
-            if module.bias is not None:
-                # pyre-fixme[6]: Expected `Tensor` for 1st param but got `Union[nn.Module,
-                #  torch.Tensor]`.
-                nn.init.constant_(module.bias, 0)
+    def c2_msra_fill(self, module: nn.Module) -> None:
+        """
+        Initialize `module.weight` using the "MSRAFill" implemented in Caffe2.
+        Also initializes `module.bias` to 0.
+        Args:
+            module (torch.nn.Module): module to initialize.
+        """
+        # pyre-fixme[6]: For 1st param expected `Tensor` but got `Union[Module, Tensor]`.
+        nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
+        if module.bias is not None:
+            # pyre-fixme[6]: Expected `Tensor` for 1st param but got `Union[nn.Module,
+            #  torch.Tensor]`.
+            nn.init.constant_(module.bias, 0)
