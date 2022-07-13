@@ -3,6 +3,7 @@ import pytorch_lightning as pl
 
 from dataset_module import PNRTempLocDataModule
 from models.cnnlstm import CnnLstm
+# from models.SFP.slowfastpreceiver import SlowFastPreceiver
 from system import PNRLocalizer
 
 
@@ -28,21 +29,23 @@ def main():
         batch_size=4
     )
     model = CnnLstm()
+    # model = SlowFastPreceiver()
     classifier = PNRLocalizer(model)
 
     logger = pl.loggers.TensorBoardLogger(
-        save_dir='../logs/',
+        save_dir='../logs/'
     )
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        dirpath='../logs/',
+        save_top_k=1,
         save_weights_only=True,
-        save_top_k=1
+        dirpath='../logs/',
+        filename="trained_model"
     )
     trainer = pl.Trainer(
         accelerator='auto',
         devices='auto',
         auto_select_gpus=True,
-        max_epochs=1,
+        max_epochs=10,
         logger=logger,
         callbacks=[checkpoint_callback]
     )

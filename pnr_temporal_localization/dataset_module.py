@@ -134,8 +134,12 @@ class PNRTempLocDataset(Dataset):
         clipped_seconds = (random_end_frame - random_start_frame) / fps
         effective_fps = len(sample_frame_num) / clipped_seconds
 
-        return (np.concatenate(frames), np.array(onehot_label),
-                effective_fps, sample_frame_num)
+        return (
+            np.concatenate(frames),
+            np.array(onehot_label, dtype='float32'),
+            effective_fps,
+            sample_frame_num
+        )
 
     def _random_clipping(self, pnr, start_frame, end_frame, min_ratio):
         max_len = end_frame - start_frame
@@ -170,8 +174,10 @@ class PNRTempLocDataset(Dataset):
                 sample_frame_num.append(frame_num)
                 frame_pnr_dist.append(np.abs(frame_num - pnr))
 
-        return (sample_frame_num[:to_total_frames], 
-                frame_pnr_dist[:to_total_frames])
+        return (
+            sample_frame_num[:to_total_frames], 
+            frame_pnr_dist[:to_total_frames]
+        )
     
     def _load_frame(self, frame_path):
         frame = cv2.imread(frame_path)

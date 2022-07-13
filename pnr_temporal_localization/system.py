@@ -9,16 +9,19 @@ class PNRLocalizer(pl.LightningModule):
         self.model = model
 
     def training_step(self, batch, batch_idx):
-        x, y = batch[0], batch[1].float()
+        x, y = batch[0], batch[1]
         y_hat = self.model(x)
         loss = nnf.binary_cross_entropy(y_hat, y)
+
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch[0], batch[1].float()
+        x, y = batch[0], batch[1]
         y_hat = self.model(x)
         loss = nnf.binary_cross_entropy(y_hat, y)
-        self.log("val_loss", loss)
+
+        self.log("val_loss", loss, on_step=False, on_epoch=True)
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.model.parameters(), lr=1e-4)

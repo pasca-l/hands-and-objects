@@ -7,7 +7,8 @@ class JsonHandler():
         self.ann_task_name = ann_task_name
         self.unopenables = [
             '73de9018-dc67-48ca-a0a1-5697f9f100cd',
-            'e964bb42-f596-4dca-96de-0940b52f0c75'
+            'e964bb42-f596-4dca-96de-0940b52f0c75',
+            'ded39483-8be8-4f8a-a3de-c86b86fd1e7c'
         ]
     
     def __call__(self, json_file):
