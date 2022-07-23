@@ -112,7 +112,7 @@ class PNRTempLocDataset(Dataset):
                 pnr_frame, start_frame, end_frame, min_ratio=0.6)
         sample_frame_num, frame_pnr_dist =\
             self._sample_out_frames(
-                pnr_frame, random_start_frame, random_end_frame, 5)
+                pnr_frame, random_start_frame, random_end_frame, 32)
 
         frames = []
         for frame_num in sample_frame_num:

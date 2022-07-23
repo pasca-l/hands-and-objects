@@ -1,4 +1,6 @@
 import torch.nn as nn
+import torch
+import numpy as np
 
 from models.SFP.helper.stem_helper import VideoModelStem
 from models.SFP.helper.fuse_helper import FuseFastToSlow
@@ -54,7 +56,7 @@ class SlowFastPreceiver(nn.Module):
             dim_in=width_per_group // beta_inv,
             fusion_conv_channel_ratio=fusion_conv_ratio,
             fusion_kernel=5,
-            alpha=4,
+            alpha=8,
             norm_module=self.norm_module
         )
 
@@ -191,7 +193,8 @@ class SlowFastPreceiver(nn.Module):
 
     def forward(self, x, bboxes=None):
         # x = [x[:,:,:4,:,:], x[:,:,4:,:,:]]
-        x = self.s1(x)
+        x = self.s1([torch.index_select(x, 1, torch.linspace(0, x.shape[1] - 1, x.shape[1]).long()), x])
+        print(np.array(x.shape))
         x = self.s1_fuse(x)
 
         # use fused slow path results as input to perceiver
