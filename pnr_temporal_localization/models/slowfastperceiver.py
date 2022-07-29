@@ -1,6 +1,21 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from perceiver_pytorch import Perceiver
+
+
+class SlowFastPreceiverSys():
+    def __init__(self):
+        self.model = SlowFastPreceiver()
+        self.loss = nn.CrossEntropyLoss()
+        self.optimizer = optim.SGD(
+            self.model.parameters(),
+            lr=0.004,
+            momentum=0.9,
+            weight_decay=1e-4,
+            dampening=0,
+            nesterov=False
+        )
 
 
 class SlowFastPreceiver(nn.Module):
@@ -43,7 +58,7 @@ class SlowFastPreceiver(nn.Module):
         x = self.head(x)
         x = x + 0.01 * x_per
 
-        return torch.softmax(x, dim=1)
+        return x
 
 
 class PackPathwayTransform():

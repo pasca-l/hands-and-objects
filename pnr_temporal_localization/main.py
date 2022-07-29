@@ -2,9 +2,8 @@ import argparse
 import pytorch_lightning as pl
 
 from dataset_module import PNRTempLocDataModule
-# from models.cnnlstm import CnnLstm as Model
-# from models.SFP.slowfastpreceiver import SlowFastPreceiver as Model
-from pnr_temporal_localization.models.slowfastperceiver import SlowFastPreceiver as Model
+from models.cnnlstm import CnnLstmSys as Module
+# from models.slowfastperceiver import SlowFastPreceiver as Model
 from system import PNRLocalizer
 
 
@@ -32,10 +31,17 @@ def main():
         ann_task_name="fho_hands",
         batch_size=4
     )
-    model = Model()
-    print(model)
-    return
-    classifier = PNRLocalizer(model)
+    # model = Module().model
+    # # print(model)
+    # # return
+    # dataset.setup()
+    # data = next(iter(dataset.train_dataloader()))
+    # print(data[0].shape, data[1][0])
+    # a = model(data[0])[0]
+    # print(a)
+    # return
+    module = Module()
+    classifier = PNRLocalizer(module)
 
     logger = pl.loggers.TensorBoardLogger(
         save_dir=args.log_save_dir

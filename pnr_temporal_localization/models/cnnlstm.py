@@ -1,6 +1,17 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torchvision.models as models
+
+
+class CnnLstmSys():
+    def __init__(self):
+        self.model = CnnLstm()
+        self.loss = nn.BCELoss()
+        self.optimizer = optim.AdamW(
+            self.model.parameters(),
+            lr=1e-4
+        )
 
 
 class CnnLstm(nn.Module):

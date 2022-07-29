@@ -7,6 +7,7 @@ def main():
     ann_dir = "../../../data/ego4d/annotations/"
     train_json_file = f"{ann_dir}fho_scod_train.json"
 
+    frame_dict
     json_data = json.load(open(train_json_file, 'r'))
     for data in tqdm(json_data['clips'], desc='Loading json'):
         json_dict = {
