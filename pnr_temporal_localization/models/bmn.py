@@ -2,9 +2,21 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.optim as optim
 
 
-class BMN(nn.Module):
+class BMNSys():
+    def __init__(self):
+        self.model = BoundaryMatchingNetwork()
+        self.loss = BMNLossFunc()
+        self.optimizer = optim.Adam(
+            self.model.parameters(),
+            lr=1e-4,
+            weight_decay=1e-4
+        )
+
+
+class BoundaryMatchingNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.tscale = 100
@@ -123,3 +135,8 @@ class BMN(nn.Module):
         mask_mat = np.stack(mask_mat, axis=3)
         mask_mat = mask_mat.astype(np.float32)
         self.sample_mask = nn.Parameter(torch.Tensor(mask_mat).view(self.tscale, -1), requires_grad=False)
+
+
+class BMNLossFunc():
+    def __call__(self, *args: Any, **kwds: Any) -> Any:
+        pass
