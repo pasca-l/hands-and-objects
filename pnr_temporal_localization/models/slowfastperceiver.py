@@ -4,16 +4,15 @@ from perceiver_pytorch import Perceiver
 
 
 class SlowFastPreceiver(nn.Module):
-    def __init__(self):
+    def __init__(self, frame_num=32):
         super().__init__()
         self.path_transform = PackPathwayTransform()
 
         slowfast = torch.hub.load('facebookresearch/pytorchvideo',
                                   'slowfast_r50', pretrained=True)
-        backbone = nn.ModuleList([*list(slowfast.blocks.children())])
-        self.b1 = backbone[:1]
-        self.b2 = backbone[1:-2]
-        self.head = backbone[-2:]
+        slowfast_modules = nn.ModuleList([*list(slowfast.blocks.children())])
+        self.backbone = slowfast_modules[:-1]
+        self.head = ResNetBasicHead(frame_num)
 
         self.perceiver = Perceiver(
             input_channels=80,
@@ -27,6 +26,7 @@ class SlowFastPreceiver(nn.Module):
             latent_heads=8,
             cross_dim_head=64,
             latent_dim_head=64,
+            num_classes=frame_num,
             attn_dropout=0.0,
             ff_dropout=0.0,
             weight_tie_layers=True,
@@ -35,25 +35,15 @@ class SlowFastPreceiver(nn.Module):
 
     def forward(self, x):
         x = self.path_transform(x)
-        for layer in self.b1:
+        for i, layer in enumerate(self.backbone):
             x = layer(x)
+            if i == 0:
+                x_per = x[0].permute((0,2,3,4,1))
+                x_per = self.perceiver(x_per)
+        x = self.head(x)
+        x = x + 0.01 * x_per
 
-        x_per = x[0].permute((0,2,3,4,1))
-        x_per = self.perceiver(x_per)
-
-        for layer in self.b2:
-            x = layer(x)
-
-        x.append(x_per)
-
-        print([i.shape for i in x])
-
-        for layer in self.head:
-            x = layer(x)
-
-        print(x.shape)
-
-        return x
+        return torch.softmax(x, dim=1)
 
 
 class PackPathwayTransform():
@@ -67,3 +57,22 @@ class PackPathwayTransform():
                 0, frames.shape[2] - 1, frames.shape[2] // self.alpha).long())
 
         return [slow_pathway, fast_pathway]
+
+
+class ResNetBasicHead(nn.Module):
+    def __init__(self, frame_num):
+        super().__init__()
+        self.dropout = nn.Dropout(p=0.5, inplace=False)
+        self.proj = nn.Linear(in_features=2304, out_features=frame_num,
+                              bias=True)
+        self.output_pool = nn.AdaptiveAvgPool3d(output_size=1)
+
+    def forward(self, x):
+        x = self.dropout(x)
+        x = x.permute((0, 2, 3, 4, 1))
+        x = self.proj(x)
+        x = x.permute((0, 4, 1, 2, 3))
+        x = self.output_pool(x)
+        x = x.view(x.shape[0], -1)
+
+        return x
