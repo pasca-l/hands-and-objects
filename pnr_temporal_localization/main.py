@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 
 from dataset_module import PNRTempLocDataModule
 from models.cnnlstm import CnnLstmSys as Module
-# from models.slowfastperceiver import SlowFastPreceiver as Module
+# from models.slowfastperceiver import SlowFastPreceiverSys as Module
 # from models.bmn import BMNSys as Module
 # from models.i3d_resnet import I3DResNetSys as Module
 from system import PNRLocalizer
