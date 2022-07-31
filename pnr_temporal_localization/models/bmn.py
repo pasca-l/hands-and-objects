@@ -1,14 +1,14 @@
 import math
 import numpy as np
-import torch
+import torch, torch.fx
 import torch.nn as nn
 import torch.optim as optim
 
 
 class BMNSys():
     def __init__(self):
-        self.model = BoundaryMatchingNetwork()
-        self.loss = BMNLossFunc()
+        self.model = BMNwithHead()
+        # self.loss = BMNLossFunc()
         self.optimizer = optim.Adam(
             self.model.parameters(),
             lr=1e-4,
@@ -16,14 +16,32 @@ class BMNSys():
         )
 
 
-class BoundaryMatchingNetwork(nn.Module):
-    def __init__(self):
+class BMNwithHead(nn.Module):
+    def __init__(self, frame_num=32):
         super().__init__()
-        self.tscale = 100
+        self.frame_num = frame_num
+
+        resnet3d = torch.hub.load('facebookresearch/pytorchvideo', 'slow_r50', pretrained=True)
+        resnet3d_modules = nn.ModuleList([*list(resnet3d.blocks.children())])
+        self.backbone = nn.Sequential(*resnet3d_modules[:-1])
+        self.model = BoundaryMatchingNetwork(self.frame_num)
+
+    def forward(self, x):
+        f = self.backbone(x)
+        f = f.permute(0,1,3,4,2).reshape(-1, 224*224*2, self.frame_num)
+        conf_map, start, end = self.model(f)
+
+        return conf_map, start, end
+
+
+class BoundaryMatchingNetwork(nn.Module):
+    def __init__(self, frame_num):
+        super().__init__()
+        self.tscale = frame_num
         self.prop_boundary_ratio = 0.5
         self.num_sample = 32
         self.num_sample_perbin = 3
-        self.feat_dim = 400
+        self.feat_dim = 224 * 224 * 2
 
         self.hidden_dim_1d = 256
         self.hidden_dim_2d = 128
@@ -137,6 +155,6 @@ class BoundaryMatchingNetwork(nn.Module):
         self.sample_mask = nn.Parameter(torch.Tensor(mask_mat).view(self.tscale, -1), requires_grad=False)
 
 
-class BMNLossFunc():
-    def __call__(self, *args: Any, **kwds: Any) -> Any:
-        pass
+# class BMNLossFunc():
+#     def __call__(self, *args: Any, **kwds: Any) -> Any:
+#         pass
