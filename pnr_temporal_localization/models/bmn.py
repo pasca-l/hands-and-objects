@@ -155,6 +155,78 @@ class BoundaryMatchingNetwork(nn.Module):
         self.sample_mask = nn.Parameter(torch.Tensor(mask_mat).view(self.tscale, -1), requires_grad=False)
 
 
+class BMNLabelTransform():
+    def __init__(self, frame_num):
+        self.temporal_scale = frame_num
+        self.temporal_gap = 1 / self.temporal_scale
+        self.anchor_xmin = [self.temporal_gap * (i - 0.5) 
+                            for i in range(self.temporal_scale)]
+        self.anchor_xmax = [self.temporal_gap * (i + 0.5) 
+                            for i in range(self.temporal_scale)]
+
+    def __call__(self, anchor_xmin, anchor_xmax, prec_frame_time, 
+                 keyframe_time, duration=8):
+        # change the measurement from second to percentage
+        gt_bbox = []
+        gt_iou_map = []
+        tmp_start = max(min(1, prec_frame_time / duration), 0)
+        tmp_end = max(min(1, keyframe_time / duration), 0)
+        gt_bbox.append([tmp_start, tmp_end])
+
+        #generate R_s and R_e
+        gt_bbox = np.array(gt_bbox)
+        gt_xmins = gt_bbox[:, 0]
+        gt_xmaxs = gt_bbox[:, 1]
+        gt_lens = gt_xmaxs - gt_xmins
+        gt_len_small = 3 * self.temporal_gap
+        gt_start_bboxs = np.stack((gt_xmins - gt_len_small / 2, gt_xmins + gt_len_small / 2), axis=1)
+        gt_end_bboxs = np.stack((gt_xmaxs - gt_len_small / 2, gt_xmaxs + gt_len_small / 2), axis=1)
+
+        gt_iou_map = np.zeros([self.temporal_scale, self.temporal_scale])
+        for i in range(self.temporal_scale):
+            for j in range(i, self.temporal_scale):
+                gt_iou_map[i, j] = np.max(
+                    self._iou_with_anchors(i * self.temporal_gap, (j + 1) * self.temporal_gap, gt_xmins, gt_xmaxs))
+        gt_iou_map = torch.Tensor(gt_iou_map)
+
+        # calculate the ioa for all timestamp
+        match_score_start = []
+        for jdx in range(len(anchor_xmin)):
+            match_score_start.append(np.max(
+                self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_start_bboxs[:, 0], gt_start_bboxs[:, 1])))
+        match_score_end = []
+        for jdx in range(len(anchor_xmin)):
+            match_score_end.append(np.max(
+                self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_end_bboxs[:, 0], gt_end_bboxs[:, 1])))
+        match_score_start = torch.Tensor(match_score_start)
+        match_score_end = torch.Tensor(match_score_end)
+
+        return match_score_start, match_score_end, gt_iou_map
+
+    def _ioa_with_anchors(self, anchors_min, anchors_max, box_min, box_max):
+        # calculate the overlap proportion between the anchor and all bbox for supervise signal,
+        # the length of the anchor is 0.01
+        len_anchors = anchors_max - anchors_min
+        int_xmin = np.maximum(anchors_min, box_min)
+        int_xmax = np.minimum(anchors_max, box_max)
+        inter_len = np.maximum(int_xmax - int_xmin, 0.)
+        scores = np.divide(inter_len, len_anchors)
+        return scores
+
+
+    def _iou_with_anchors(self, anchors_min, anchors_max, box_min, box_max):
+        """Compute jaccard score between a box and the anchors.
+        """
+        len_anchors = anchors_max - anchors_min
+        int_xmin = np.maximum(anchors_min, box_min)
+        int_xmax = np.minimum(anchors_max, box_max)
+        inter_len = np.maximum(int_xmax - int_xmin, 0.)
+        union_len = len_anchors - inter_len + box_max - box_min
+        # print inter_len,union_len
+        jaccard = np.divide(inter_len, union_len)
+        return jaccard
+
+
 # class BMNLossFunc():
 #     def __call__(self, *args: Any, **kwds: Any) -> Any:
 #         pass
