@@ -21,13 +21,14 @@ class SlowFastPreceiverSys():
 class SlowFastPreceiver(nn.Module):
     def __init__(self, frame_num=32):
         super().__init__()
+        self.frame_num = frame_num
         self.path_transform = PackPathwayTransform()
 
         slowfast = torch.hub.load('facebookresearch/pytorchvideo',
                                   'slowfast_r50', pretrained=True)
         slowfast_modules = nn.ModuleList([*list(slowfast.blocks.children())])
         self.backbone = slowfast_modules[:-1]
-        self.head = ResNetBasicHead(frame_num)
+        self.head = ResNetBasicHead(self.frame_num)
 
         self.perceiver = Perceiver(
             input_channels=80,
@@ -41,7 +42,7 @@ class SlowFastPreceiver(nn.Module):
             latent_heads=8,
             cross_dim_head=64,
             latent_dim_head=64,
-            num_classes=frame_num,
+            num_classes=self.frame_num,
             attn_dropout=0.0,
             ff_dropout=0.0,
             weight_tie_layers=True,
