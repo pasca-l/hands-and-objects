@@ -57,7 +57,7 @@ def main():
         filename=args.model_save_name
     )
     trainer = pl.Trainer(
-        accelerator='cpu',
+        accelerator='gpu',
         devices='auto',
         auto_select_gpus=True,
         max_epochs=10,
