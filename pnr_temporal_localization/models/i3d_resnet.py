@@ -28,6 +28,8 @@ class I3DResNet(nn.Module):
         self.proj = nn.Linear(in_features=2048, out_features=1, bias=True)
 
     def forward(self, x):
+        batch_size = x.shape[0]
+
         x = self.backbone(x)
 
         x = self.pool(x)
@@ -35,6 +37,6 @@ class I3DResNet(nn.Module):
         x = x.permute((0, 2, 3, 4, 1))
         x = self.proj(x)
         x = x.permute((0, 4, 1, 2, 3))
-        x = x.view(x.shape[0], -1)
+        x = x.view(batch_size, -1)
 
         return x

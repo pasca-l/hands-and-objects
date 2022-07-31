@@ -24,12 +24,10 @@ class CnnLstm(nn.Module):
         self.regressor = nn.Linear(hidden_size*2, 1)
 
     def forward(self, x):
-        seq_len = x.shape[2]
-        batch_size = x.shape[0]
-        x = x.permute((0,2,1,3,4))
-        x = x.reshape(-1, x.shape[2], x.shape[3], x.shape[4])
+        batch_size, seq_len = x.shape[0], x.shape[2]
+
+        x = x.reshape(-1, x.shape[1], x.shape[3], x.shape[4])
         x = self.backbone(x)
-        x = x.squeeze(2).squeeze(2)
         x = x.view(batch_size, seq_len, -1)
         x, _ = self.lstm(x)
         out = self.regressor(x).squeeze(2)

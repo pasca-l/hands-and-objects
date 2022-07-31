@@ -84,11 +84,13 @@ class ResNetBasicHead(nn.Module):
         self.output_pool = nn.AdaptiveAvgPool3d(output_size=1)
 
     def forward(self, x):
+        batch_size = x.shape[0]
+
         x = self.dropout(x)
         x = x.permute((0, 2, 3, 4, 1))
         x = self.proj(x)
         x = x.permute((0, 4, 1, 2, 3))
         x = self.output_pool(x)
-        x = x.view(x.shape[0], -1)
+        x = x.view(batch_size, -1)
 
         return x
