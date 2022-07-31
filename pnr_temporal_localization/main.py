@@ -1,14 +1,12 @@
-import os
 import argparse
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
+import pytorch_lightning as pl
 
-from datasets import PNRTempLocDataset
-
-from trainval import train, val
-from evaluate import evaluate, generate_submission_file, generate_submission_file_cls
-from models import CnnLstm
+from dataset_module import PNRTempLocDataModule
+from models.cnnlstm import CnnLstmSys as Module
+# from models.slowfastperceiver import SlowFastPreceiver as Module
+# from models.bmn import BMNSys as Module
+# from models.i3d_resnet import I3DResNetSys as Module
+from system import PNRLocalizer
 
 
 def option_parser():
@@ -16,9 +14,12 @@ def option_parser():
     parser.add_argument('--task', type=str, default='PNR', choices=['PNR'])
     parser.add_argument('--phase', type=str, default='train',
                         choices=['train', 'test'])
-    parser.add_argument('--model_save_name', type=str, default='cnn_lstm.pth')
-    parser.add_argument('--ann_dir', type=str, default='../../../data/ego4d/annotations/')
-    parser.add_argument('--clip_dir', type=str, default='../../../data/ego4d/clips/')
+    parser.add_argument('--log_save_dir', type=str, default='./logs/')
+    parser.add_argument('--model_save_name', type=str, default='trained_model')
+    parser.add_argument('--ann_dir', type=str,
+                        default='../../../data/ego4d/annotations/')
+    parser.add_argument('--data_dir', type=str, 
+                        default='../../../data/ego4d/clips/')
 
     return parser.parse_args()
 
@@ -26,41 +27,45 @@ def option_parser():
 def main():
     args = option_parser()
 
-    # if args.task == 'PNR':
-    #     state_change = True
-    #     criterion = nn.BCELoss().cuda()
-    #     save_name = 'PNR_' + args.model_save_name
+    dataset = PNRTempLocDataModule(
+        data_dir=args.data_dir,
+        ann_dir=args.ann_dir,
+        ann_task_name="fho_hands",
+        batch_size=4
+    )
 
-    model = CnnLstm()
-    model.cuda()
+    # model = Module().model
+    # dataset.setup()
+    # data = next(iter(dataset.train_dataloader()))
+    # print(data[0].shape, data[1][0])
+    # a = model(data[0])
+    # print(len(a), [i.shape for i in a])
+    # return
 
-    if args.phase == 'train':
-        train_dataset =\
-            PNRTempLocDataset(ann_dir=args.ann_dir, clip_dir=args.clip_dir)
-        train_dataloader =\
-            DataLoader(train_dataset, batch_size=4, pin_memory=True,
-                       num_workers=8, shuffle=True)
-        val_dataset =\
-            PNRTempLocDataset(phase='val', ann_dir=args.ann_dir,
-                              clip_dir=args.clip_dir)
-        val_dataloader =\
-            DataLoader(val_dataset, batch_size=1, pin_memory=True,
-                       num_workers=8)
+    module = Module()
+    classifier = PNRLocalizer(module)
 
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-        criterion = nn.BCELoss().cuda()
-        best_loss = 99999
-        best_epoch = 0
-        for epoch in range(10):
-            train(model, train_dataloader, optimizer, criterion, epoch)
-            # torch.save(model.state_dict(), 'epoch_%d_'%epoch+args.save_name)
+    logger = pl.loggers.TensorBoardLogger(
+        save_dir=args.log_save_dir
+    )
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        save_top_k=1,
+        save_weights_only=True,
+        monitor="train_loss",
+        mode='min',
+        dirpath=args.log_save_dir,
+        filename=args.model_save_name
+    )
+    trainer = pl.Trainer(
+        accelerator='cpu',
+        devices='auto',
+        auto_select_gpus=True,
+        max_epochs=10,
+        logger=logger,
+        callbacks=[checkpoint_callback]
+    )
 
-            loss, _, _ = val(model, val_dataloader, criterion, epoch)
-            if loss < best_loss:
-                best_loss = loss
-                best_epoch = epoch
-                torch.save(model.state_dict(), args.model_save_name)
-                print('best model at epoch %d' % best_epoch)
+    trainer.fit(classifier, dataset)
 
 
 if __name__ == '__main__':
