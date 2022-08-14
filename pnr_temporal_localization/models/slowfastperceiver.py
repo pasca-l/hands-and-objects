@@ -67,10 +67,12 @@ class PackPathwayTransform():
         self.alpha = 4
 
     def __call__(self, frames):
+        frame_num = frames.shape[2]
+        index = torch.linspace(0, frame_num - 1, frame_num // self.alpha,
+                               device=frames.device).long()
+
         fast_pathway = frames
-        slow_pathway = torch.index_select(frames, 2, 
-            torch.linspace(
-                0, frames.shape[2] - 1, frames.shape[2] // self.alpha).long())
+        slow_pathway = torch.index_select(frames, 2, index)
 
         return [slow_pathway, fast_pathway]
 

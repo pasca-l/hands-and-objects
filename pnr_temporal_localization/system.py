@@ -1,5 +1,5 @@
 import pytorch_lightning as pl
-import torchmetrics
+# import torchmetrics
 
 
 class PNRLocalizer(pl.LightningModule):
@@ -8,8 +8,8 @@ class PNRLocalizer(pl.LightningModule):
         self.model = sys.model
         self.loss = sys.loss
         self.optimizer = sys.optimizer
-        self.train_acc = torchmetrics.Accuracy()
-        self.val_acc = torchmetrics.Accuracy()
+        # self.train_acc = torchmetrics.Accuracy()
+        # self.val_acc = torchmetrics.Accuracy()
 
     def training_step(self, batch, batch_idx):
         frames, label = batch[0], batch[1]
