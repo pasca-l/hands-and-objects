@@ -12,17 +12,16 @@ def option_parser():
     parser.add_argument('--phase', type=str, default='train',
                         choices=['train', 'test'])
     parser.add_argument('--log_save_dir', type=str, default='./logs/')
-    parser.add_argument('--model_save_name', type=str, default='trained_model')
     parser.add_argument('--ann_dir', type=str,
                         default='../../../data/ego4d/annotations/')
     parser.add_argument('--data_dir', type=str, 
                         default='../../../data/ego4d/clips/')
-    parser.add_argument('--module', type=str, default='cnnlstm',
+    parser.add_argument('--model', type=str, default="cnnlstm",
                         choices=[
-                            'cnnlstm',
-                            'slowfastperceiver',
-                            'bmn',
-                            'i3d_resnet'
+                            "cnnlstm",
+                            "slowfastperceiver",
+                            "bmn",
+                            "i3d_resnet"
                         ])
 
     return parser.parse_args()
@@ -31,7 +30,7 @@ def option_parser():
 def main():
     args = option_parser()
 
-    module = importlib.import_module(f'models.{args.module}')
+    module = importlib.import_module(f'models.{args.model}')
     system = module.System()
 
     # model = Module().model
@@ -60,7 +59,7 @@ def main():
         monitor="train_loss",
         mode='min',
         dirpath=args.log_save_dir,
-        filename=args.model_save_name
+        filename=args.model
     )
     trainer = pl.Trainer(
         accelerator='auto',
