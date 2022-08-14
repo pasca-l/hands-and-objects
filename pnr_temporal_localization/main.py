@@ -17,12 +17,7 @@ def option_parser():
     parser.add_argument('--data_dir', type=str, 
                         default='../../../data/ego4d/clips/')
     parser.add_argument('--model', type=str, default="cnnlstm",
-                        choices=[
-                            "cnnlstm",
-                            "slowfastperceiver",
-                            "bmn",
-                            "i3d_resnet"
-                        ])
+        choices=["cnnlstm", "slowfastperceiver", "bmn", "i3d_resnet"])
 
     return parser.parse_args()
 
