@@ -1,10 +1,9 @@
-import numpy as np
 import torch, torch.fx
 import torch.nn as nn
 import torch.optim as optim
 
 
-class I3DResNetSys():
+class System():
     def __init__(self):
         self.model = I3DResNet()
         self.loss = nn.CrossEntropyLoss()

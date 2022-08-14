@@ -4,7 +4,7 @@ import torch.optim as optim
 from perceiver_pytorch import Perceiver
 
 
-class SlowFastPreceiverSys():
+class System():
     def __init__(self):
         self.model = SlowFastPreceiver()
         self.loss = nn.CrossEntropyLoss()

@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-class BMNSys():
+class System():
     def __init__(self):
         self.model = BMNwithHead()
         # self.loss = BMNLossFunc()

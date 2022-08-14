@@ -1,11 +1,8 @@
 import argparse
+import importlib
 import pytorch_lightning as pl
 
 from dataset_module import PNRTempLocDataModule
-from models.cnnlstm import CnnLstmSys as Module
-# from models.slowfastperceiver import SlowFastPreceiverSys as Module
-# from models.bmn import BMNSys as Module
-# from models.i3d_resnet import I3DResNetSys as Module
 from system import PNRLocalizer
 
 
@@ -20,6 +17,13 @@ def option_parser():
                         default='../../../data/ego4d/annotations/')
     parser.add_argument('--data_dir', type=str, 
                         default='../../../data/ego4d/clips/')
+    parser.add_argument('--module', type=str, default='cnnlstm',
+                        choices=[
+                            'cnnlstm',
+                            'slowfastperceiver',
+                            'bmn',
+                            'i3d_resnet'
+                        ])
 
     return parser.parse_args()
 
@@ -27,12 +31,8 @@ def option_parser():
 def main():
     args = option_parser()
 
-    dataset = PNRTempLocDataModule(
-        data_dir=args.data_dir,
-        ann_dir=args.ann_dir,
-        ann_task_name="fho_hands",
-        batch_size=4
-    )
+    module = importlib.import_module(f'models.{args.module}')
+    system = module.System()
 
     # model = Module().model
     # dataset.setup()
@@ -42,8 +42,14 @@ def main():
     # print(len(a), [i.shape for i in a])
     # return
 
-    module = Module()
-    classifier = PNRLocalizer(module)
+    dataset = PNRTempLocDataModule(
+        data_dir=args.data_dir,
+        ann_dir=args.ann_dir,
+        ann_task_name="fho_hands",
+        batch_size=4
+    )
+
+    classifier = PNRLocalizer(system)
 
     logger = pl.loggers.TensorBoardLogger(
         save_dir=args.log_save_dir
@@ -57,7 +63,7 @@ def main():
         filename=args.model_save_name
     )
     trainer = pl.Trainer(
-        accelerator='gpu',
+        accelerator='auto',
         devices='auto',
         auto_select_gpus=True,
         max_epochs=10,

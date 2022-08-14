@@ -4,7 +4,7 @@ import torch.optim as optim
 import torchvision.models as models
 
 
-class CnnLstmSys():
+class System():
     def __init__(self):
         self.model = CnnLstm()
         self.loss = nn.BCELoss()
