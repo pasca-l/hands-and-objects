@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import pytorch_lightning as pl
 
 from dataset_module import PNRTempLocDataModule
@@ -31,8 +32,10 @@ def main():
         batch_size=4
     )
 
+    module = importlib.import_module(f'models.{args.model}')
+    system = module.System()
     classifier = PNRLocalizer(
-        sys_name=args.model
+        sys=system
     )
 
     import torch

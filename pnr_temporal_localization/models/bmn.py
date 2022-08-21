@@ -15,6 +15,7 @@ class System():
             lr=1e-4,
             weight_decay=1e-4
         )
+        self.label_transform = BMNLabelTransform()
 
 
 class BMNwithHead(nn.Module):
@@ -156,7 +157,7 @@ class BoundaryMatchingNetwork(nn.Module):
         self.sample_mask = nn.Parameter(torch.Tensor(mask_mat).view(self.tscale, -1), requires_grad=False)
 
 
-class LabelTransform():
+class BMNLabelTransform():
     def __init__(self, frame_num=32):
         self.temporal_scale = frame_num
         self.temporal_gap = 1 / self.temporal_scale

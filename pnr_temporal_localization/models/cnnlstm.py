@@ -12,6 +12,7 @@ class System():
             self.model.parameters(),
             lr=1e-4
         )
+        self.label_transform = IdentityTransform()
 
 
 class CnnLstm(nn.Module):
@@ -33,3 +34,11 @@ class CnnLstm(nn.Module):
         out = self.regressor(x).squeeze(2)
 
         return torch.sigmoid(out)
+
+
+class IdentityTransform():
+    def __init__(self):
+        pass
+
+    def __call__(self, batch):
+        return batch[1]

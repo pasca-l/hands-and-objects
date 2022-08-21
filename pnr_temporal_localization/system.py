@@ -1,23 +1,14 @@
-import importlib
-
 import pytorch_lightning as pl
 # import torchmetrics
 
 
 class PNRLocalizer(pl.LightningModule):
-    def __init__(self, sys_name):
+    def __init__(self, sys):
         super().__init__()
-        module = importlib.import_module(f'models.{sys_name}')
-        system = module.System()
-
-        self.model = system.model
-        self.loss = system.loss
-        self.optimizer = system.optimizer
-
-        if sys_name == 'bmn':
-            self.label_function = module.LabelTransform()
-        else:
-            self.label_function = IdentityTransform()
+        self.model = sys.model
+        self.loss = sys.loss
+        self.optimizer = sys.optimizer
+        self.label_function = sys.label_transform
 
         # self.train_acc = torchmetrics.Accuracy()
         # self.val_acc = torchmetrics.Accuracy()
@@ -41,11 +32,3 @@ class PNRLocalizer(pl.LightningModule):
 
     def configure_optimizers(self):
         return self.optimizer
-
-
-class IdentityTransform():
-    def __init__(self):
-        pass
-
-    def __call__(self, batch):
-        return batch[1]
