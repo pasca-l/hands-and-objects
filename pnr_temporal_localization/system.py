@@ -17,9 +17,7 @@ class PNRLocalizer(pl.LightningModule):
         if sys_name == 'bmn':
             self.label_function = module.LabelTransform()
         else:
-            def identity_func(batch):
-                return batch[1]
-            self.label_function = identity_func
+            self.label_function = IdentityTransform()
 
         # self.train_acc = torchmetrics.Accuracy()
         # self.val_acc = torchmetrics.Accuracy()
@@ -43,3 +41,11 @@ class PNRLocalizer(pl.LightningModule):
 
     def configure_optimizers(self):
         return self.optimizer
+
+
+class IdentityTransform():
+    def __init__(self):
+        pass
+
+    def __call__(self, batch):
+        return batch[1]
