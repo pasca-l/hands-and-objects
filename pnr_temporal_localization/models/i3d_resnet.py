@@ -19,7 +19,8 @@ class I3DResNet(nn.Module):
         super().__init__()
         self.frame_num = frame_num
 
-        resnet3d = torch.hub.load('facebookresearch/pytorchvideo', 'slow_r50', pretrained=True)
+        resnet3d = torch.hub.load('facebookresearch/pytorchvideo',
+                                  'slow_r50', pretrained=True)
         resnet3d_modules = nn.ModuleList([*list(resnet3d.blocks.children())])
         self.backbone = nn.Sequential(*resnet3d_modules[:-1])
         self.pool = nn.AvgPool3d(kernel_size=(1, 7, 7), stride=1, padding=0)
