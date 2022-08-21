@@ -1,5 +1,4 @@
 import argparse
-import importlib
 import pytorch_lightning as pl
 
 from dataset_module import PNRTempLocDataModule
@@ -25,17 +24,6 @@ def option_parser():
 def main():
     args = option_parser()
 
-    module = importlib.import_module(f'models.{args.model}')
-    system = module.System()
-
-    # model = Module().model
-    # dataset.setup()
-    # data = next(iter(dataset.train_dataloader()))
-    # print(data[0].shape, data[1][0])
-    # a = model(data[0])
-    # print(len(a), [i.shape for i in a])
-    # return
-
     dataset = PNRTempLocDataModule(
         data_dir=args.data_dir,
         ann_dir=args.ann_dir,
@@ -43,7 +31,17 @@ def main():
         batch_size=4
     )
 
-    classifier = PNRLocalizer(system)
+    classifier = PNRLocalizer(
+        sys_name=args.model
+    )
+
+    import torch
+    # dataset.setup()
+    # data = next(iter(dataset.train_dataloader()))
+    test_data = torch.rand(4, 3, 32, 224, 224)
+    a = classifier.model(test_data)
+    print(len(a), [i.shape for i in a])
+    return
 
     logger = pl.loggers.TensorBoardLogger(
         save_dir=args.log_save_dir

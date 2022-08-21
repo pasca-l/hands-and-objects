@@ -8,7 +8,7 @@ import torch.optim as optim
 class System():
     def __init__(self):
         self.model = BMNwithHead()
-        # self.loss = BMNLossFunc()
+        self.loss = BMNLossFunc()
         self.optimizer = optim.Adam(
             self.model.parameters(),
             lr=1e-4,
@@ -31,7 +31,7 @@ class BMNwithHead(nn.Module):
         f = f.permute(0,1,3,4,2).reshape(-1, 224*224*2, self.frame_num)
         conf_map, start, end = self.model(f)
 
-        return conf_map, start, end
+        return [conf_map, start, end]
 
 
 class BoundaryMatchingNetwork(nn.Module):
@@ -155,22 +155,25 @@ class BoundaryMatchingNetwork(nn.Module):
         self.sample_mask = nn.Parameter(torch.Tensor(mask_mat).view(self.tscale, -1), requires_grad=False)
 
 
-class BMNLabelTransform():
-    def __init__(self, frame_num):
+class LabelTransform():
+    def __init__(self, frame_num=32):
         self.temporal_scale = frame_num
         self.temporal_gap = 1 / self.temporal_scale
         self.anchor_xmin = [self.temporal_gap * (i - 0.5) 
                             for i in range(self.temporal_scale)]
         self.anchor_xmax = [self.temporal_gap * (i + 0.5) 
                             for i in range(self.temporal_scale)]
+        self.prec_frame_time = 0.0
+        self.duration = 8
 
-    def __call__(self, anchor_xmin, anchor_xmax, prec_frame_time, 
-                 keyframe_time, duration=8):
+    def __call__(self, batch):
         # change the measurement from second to percentage
+        info = batch[2]
+        keyframe_time = (info["clip_pnr_frame"] - info["clip_start_frame"]) / 30
         gt_bbox = []
         gt_iou_map = []
-        tmp_start = max(min(1, prec_frame_time / duration), 0)
-        tmp_end = max(min(1, keyframe_time / duration), 0)
+        tmp_start = max(min(1, self.prec_frame_time / self.duration), 0)
+        tmp_end = max(min(1, keyframe_time / self.duration), 0)
         gt_bbox.append([tmp_start, tmp_end])
 
         #generate R_s and R_e
@@ -191,17 +194,17 @@ class BMNLabelTransform():
 
         # calculate the ioa for all timestamp
         match_score_start = []
-        for jdx in range(len(anchor_xmin)):
+        for jdx in range(len(self.anchor_xmin)):
             match_score_start.append(np.max(
-                self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_start_bboxs[:, 0], gt_start_bboxs[:, 1])))
+                self._ioa_with_anchors(self.anchor_xmin[jdx], self.anchor_xmax[jdx], gt_start_bboxs[:, 0], gt_start_bboxs[:, 1])))
         match_score_end = []
-        for jdx in range(len(anchor_xmin)):
+        for jdx in range(len(self.anchor_xmin)):
             match_score_end.append(np.max(
-                self._ioa_with_anchors(anchor_xmin[jdx], anchor_xmax[jdx], gt_end_bboxs[:, 0], gt_end_bboxs[:, 1])))
+                self._ioa_with_anchors(self.anchor_xmin[jdx], self.anchor_xmax[jdx], gt_end_bboxs[:, 0], gt_end_bboxs[:, 1])))
         match_score_start = torch.Tensor(match_score_start)
         match_score_end = torch.Tensor(match_score_end)
 
-        return match_score_start, match_score_end, gt_iou_map
+        return [match_score_start, match_score_end, gt_iou_map]
 
     def _ioa_with_anchors(self, anchors_min, anchors_max, box_min, box_max):
         # calculate the overlap proportion between the anchor and all bbox for supervise signal,
@@ -212,7 +215,6 @@ class BMNLabelTransform():
         inter_len = np.maximum(int_xmax - int_xmin, 0.)
         scores = np.divide(inter_len, len_anchors)
         return scores
-
 
     def _iou_with_anchors(self, anchors_min, anchors_max, box_min, box_max):
         """Compute jaccard score between a box and the anchors.
@@ -227,6 +229,9 @@ class BMNLabelTransform():
         return jaccard
 
 
-# class BMNLossFunc():
-#     def __call__(self, *args: Any, **kwds: Any) -> Any:
-#         pass
+class BMNLossFunc(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, output, target):
+        return loss
