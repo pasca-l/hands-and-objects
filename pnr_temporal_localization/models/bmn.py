@@ -2,6 +2,7 @@ import math
 import numpy as np
 import torch, torch.fx
 import torch.nn as nn
+import torch.nn.functional as nnf
 import torch.optim as optim
 
 
@@ -235,10 +236,13 @@ class BMNLossFunc(nn.Module):
         self.temporal_scale = frame_num
         self.bm_mask = np.triu(
             np.ones((self.temporal_scale, self.temporal_scale)))
+        self.device = None
 
     def forward(self, output, target):
         conf_map, start, end = output
         label_conf, label_start, label_end = target
+
+        self.device = conf_map.device
 
         loss = self.bmn_loss_func(conf_map, start, end, label_conf, label_start, label_end)
 
@@ -289,19 +293,19 @@ class BMNLossFunc(nn.Module):
         num_l = torch.sum(u_lmask)
 
         r_m = num_h / (num_m + 1e-10)
-        u_smmask = torch.Tensor(np.random.rand(*gt_iou_map.shape)).to(device)
+        u_smmask = torch.Tensor(np.random.rand(*gt_iou_map.shape)).to(self.device)
         u_smmask = u_mmask * u_smmask
         u_smmask = (u_smmask > (1. - r_m)).float()
 
         r_l = num_h / (num_l + 1e-10)
-        u_slmask = torch.Tensor(np.random.rand(*gt_iou_map.shape)).to(device)
+        u_slmask = torch.Tensor(np.random.rand(*gt_iou_map.shape)).to(self.device)
         u_slmask = u_lmask * u_slmask
         u_slmask = (u_slmask > (1. - r_l)).float()
 
         weights = u_hmask + u_smmask + u_slmask
 
-        loss = F.mse_loss(pred_score * weights, gt_iou_map * weights)
-        loss = 0.5 * torch.sum(loss * torch.ones(*weights.shape).to(device)) / (torch.sum(weights)+1e-10)
+        loss = nnf.mse_loss(pred_score * weights, gt_iou_map * weights)
+        loss = 0.5 * torch.sum(loss * torch.ones(*weights.shape).to(self.device)) / (torch.sum(weights)+1e-10)
 
         return loss
 
