@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import torch
 import pytorch_lightning as pl
 
 from dataset_module import PNRTempLocDataModule
@@ -17,9 +18,23 @@ def option_parser():
     parser.add_argument('--data_dir', type=str, 
                         default='../../../data/ego4d/clips/')
     parser.add_argument('--model', type=str, default="cnnlstm",
-        choices=["cnnlstm", "slowfastperceiver", "bmn", "i3d_resnet"])
+        choices=["cnnlstm", "slowfastperceiver", "bmn", "i3d_resnet",
+                 "hand_salience"])
 
     return parser.parse_args()
+
+
+def save_pth_from_ckpt():
+    args = option_parser()
+
+    module = importlib.import_module(f'models.{args.model}')
+    model = module.System().model
+
+    save_name = f'{args.log_save_dir}{args.model}'
+    checkpoint = torch.load(f'{save_name}.ckpt')
+    model.load_state_dict(checkpoint['model_state_dict'])
+
+    torch.save(model.state_dict(), f'{save_name}.pth')
 
 
 def main():
@@ -67,6 +82,7 @@ def main():
     )
 
     trainer.fit(classifier, dataset)
+    save_pth_from_ckpt()
 
 
 if __name__ == '__main__':
