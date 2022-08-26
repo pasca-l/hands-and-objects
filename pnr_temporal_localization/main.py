@@ -24,19 +24,6 @@ def option_parser():
     return parser.parse_args()
 
 
-def save_pth_from_ckpt():
-    args = option_parser()
-
-    module = importlib.import_module(f'models.{args.model}')
-    model = module.System().model
-
-    save_name = f'{args.log_save_dir}{args.model}'
-    checkpoint = torch.load(f'{save_name}.ckpt')
-    model.load_state_dict(checkpoint['model_state_dict'])
-
-    torch.save(model.state_dict(), f'{save_name}.pth')
-
-
 def main():
     args = option_parser()
 
@@ -82,7 +69,13 @@ def main():
     )
 
     trainer.fit(classifier, dataset)
-    save_pth_from_ckpt()
+
+    # save pth file
+    save_name = f'{args.log_save_dir}{args.model}'
+    model = system.model
+    checkpoint = torch.load(f'{save_name}.ckpt')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    torch.save(model.state_dict(), f'{save_name}.pth')
 
 
 if __name__ == '__main__':
