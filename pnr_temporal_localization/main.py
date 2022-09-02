@@ -9,7 +9,6 @@ from system import PNRLocalizer
 
 def option_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', type=str, default='PNR', choices=['PNR'])
     parser.add_argument('--phase', type=str, default='train',
                         choices=['train', 'test'])
     parser.add_argument('--log_save_dir', type=str, default='./logs/')

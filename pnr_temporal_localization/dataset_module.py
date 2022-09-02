@@ -1,3 +1,4 @@
+import sys
 import cv2
 import numpy as np
 import torch
@@ -5,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import pytorch_lightning as pl
 
+sys.path.append("../utils")
 from json_handler import JsonHandler
 from video_extractor import Extractor
 
@@ -35,7 +37,7 @@ class PNRTempLocDataModule(pl.LightningDataModule):
 
         if stage == "predict":
             self.predict_data = None
-    
+
     def train_dataloader(self):
         return DataLoader(
             self.train_data,
