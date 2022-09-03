@@ -100,7 +100,7 @@ class StateChgObjDataset(Dataset):
         frames = []
         for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
             frame_path = f"{self.action_frame_dir}{info['clip_uid']}" +\
-                         f"/{info[f'{frame_type}_num']}.png"
+                         f"/{info[f'{frame_type}_num_clip']}.png"
             try:
                 image = self._load_frame(frame_path)
             except:
@@ -113,9 +113,10 @@ class StateChgObjDataset(Dataset):
     def _get_labels(self, info):
         object_labels = []
         obj_cls_dict = {
-            "object_of_change": 0,
-            "left_hand": 1,
-            "right_hand": 2
+            "left_hand": 0,
+            "right_hand": 1,
+            "object_of_change": 2,
+            "tool": 3,
         }
 
         for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
