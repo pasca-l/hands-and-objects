@@ -3,8 +3,8 @@ import importlib
 import torch
 import pytorch_lightning as pl
 
-from dataset_module import PNRTempLocDataModule
-from system import PNRLocalizer
+from dataset_module import StateChgObjDataModule
+# from system import PNRLocalizer
 
 
 def option_parser():
@@ -26,13 +26,15 @@ def option_parser():
 def main():
     args = option_parser()
 
-    dataset = PNRTempLocDataModule(
+    dataset = StateChgObjDataModule(
         data_dir=args.data_dir,
         ann_dir=args.ann_dir,
-        ann_task_name="fho_hands",
+        ann_task_name="fho_scod",
         batch_size=4
     )
 
+
+    return
     module = importlib.import_module(f'models.{args.model}')
     system = module.System()
     classifier = PNRLocalizer(

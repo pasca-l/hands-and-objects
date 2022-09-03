@@ -18,6 +18,8 @@ class JsonHandler():
         """
         if self.ann_task_name == 'fho_hands':
             return self._fho_hands_unpack(json_file)
+        elif self.ann_task_name == 'fho_scod':
+            return self._fho_scod_unpack(json_file)
 
     def _fho_hands_unpack(self, json_file, all_data=False):
         """
@@ -81,5 +83,77 @@ class JsonHandler():
                         json_dict |= temp_dict
 
                 flatten_json_list.append(json_dict)
+
+        return flatten_json_list
+
+    def _fho_scod_unpack(self, json_file, all_data=False):
+        """
+        The target annotation file is "fho_scod_PHASE.json".
+
+        Every dict in the json list will result in the following format:
+            dict
+            |-  "clip_id"
+            |-  "clip_uid"
+            |-  "video_uid"
+            |-  "clip_start_sec"
+            |-  "clip_end_sec"
+            |-  "clip_start_frame"
+            |-  "clip_end_frame"
+            |-  "(pre/pnr/post)_frame_num"
+            |-  "(pre/pnr/post)_frame_num_clip"
+            |-  "(pre/pnr/post)_frame_width"
+            |-  "(pre/pnr/post)_frame_height"
+            |-  "(pre/pnr/post)_frame_objects"
+                |-  "object_type"
+                |-  "structured_noun"
+                |-  "instance_num"
+                |-  "bbox_x"
+                |-  "bbox_y"
+                |-  "bbox_width"
+                |-  "bbox_height"
+        """
+        flatten_json_list = []
+
+        json_data = json.load(open(json_file, 'r'))
+        for data in tqdm(json_data['clips'], desc='Preparing data'):
+            if data['clip_uid'] in self.unopenables:
+                continue
+
+            json_dict = {
+                "clip_id": data['clip_id'],
+                "clip_uid": data['clip_uid'],
+                "video_uid": data['video_uid'],
+                "clip_start_sec": data['clip_parent_start_sec'],
+                "clip_end_sec": data['clip_parent_end_sec'],
+                "clip_start_frame": data['clip_parent_start_frame'],
+                "clip_end_frame": data['clip_parent_end_frame'],
+            }
+
+            for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
+                frame_data = data[frame_type]
+                frame_dict = {
+                    f"{frame_type}_num": frame_data['frame_number'],
+                    f"{frame_type}_num_clip": frame_data['clip_frame_number'],
+                    f"{frame_type}_width": frame_data['width'],
+                    f"{frame_type}_height": frame_data['height'],
+                    f"{frame_type}_objects": []
+                }
+
+                for obj in frame_data['bbox']:
+                    object_dict = {
+                        "object_type": obj['object_type'],
+                        "structured_noun": obj['structured_noun'],
+                        "instance_num": obj['instance_number'],
+                        "bbox_x": obj['bbox']['x'],
+                        "bbox_y": obj['bbox']['y'],
+                        "bbox_width": obj['bbox']['width'],
+                        "bbox_height": obj['bbox']['height']
+                    }
+
+                    frame_dict[f"{frame_type}_objects"].append(object_dict)
+
+                json_dict |= frame_dict
+
+            flatten_json_list.append(json_dict)
 
         return flatten_json_list
