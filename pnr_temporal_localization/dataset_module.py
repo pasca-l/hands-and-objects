@@ -74,7 +74,8 @@ class PNRTempLocDataset(Dataset):
     def __init__(self, phase, json_handler, extraction=False, **path_dict):
         self.data_dir = path_dict["data_dir"]
         self.json_file = path_dict[f"{phase}_json"]
-        self.action_frame_dir = f"{self.data_dir}action_frames/"
+        self.clip_dir = f"{self.data_dir}clips/"
+        # self.action_frame_dir = f"{self.data_dir}action_frames/"
 
         self.transform = FrameTransform()
 
@@ -198,7 +199,7 @@ class PNRTempLocDataset(Dataset):
             if ret == False:
                 break
             if counter in frame_nums:
-                frames.append(frame)
+                frames.append([frame])
 
             counter += 1
 
