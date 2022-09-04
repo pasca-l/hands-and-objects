@@ -183,7 +183,7 @@ class PNRTempLocDataset(Dataset):
         )
 
     def _load_frames(self, frame_nums, info):
-        video_path = f"{self.data_dir}{info['clip_uid']}.mp4"
+        video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
         video = cv2.VideoCapture(video_path)
         info["original_fps"] = video.get(cv2.CAP_PROP_FPS)
 

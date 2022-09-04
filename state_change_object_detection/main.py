@@ -33,8 +33,6 @@ def main():
         batch_size=4
     )
 
-
-    return
     module = importlib.import_module(f'models.{args.model}')
     system = module.System()
     classifier = PNRLocalizer(
