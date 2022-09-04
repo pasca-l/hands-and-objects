@@ -8,7 +8,9 @@ class JsonHandler():
         self.unopenables = [
             '73de9018-dc67-48ca-a0a1-5697f9f100cd',
             'e964bb42-f596-4dca-96de-0940b52f0c75',
-            'ded39483-8be8-4f8a-a3de-c86b86fd1e7c'
+            'ded39483-8be8-4f8a-a3de-c86b86fd1e7c',
+            'f48b7adc-724a-4d90-89a9-fbf9d892005b',
+            '8365e83f-cbf3-4260-a76f-565ed04eddf0'
         ]
     
     def __call__(self, json_file):
