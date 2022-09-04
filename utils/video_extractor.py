@@ -113,6 +113,9 @@ class Extractor():
             video_path = f"{self.data_dir}clips/{info['clip_uid']}.mp4"
             array_save_path = f"{array_dir}{info['clip_uid']}"
 
+            if os.path.exists(f"{array_save_path}.npz"):
+                continue
+
             video = cv2.VideoCapture(video_path)
 
             array_list = []
