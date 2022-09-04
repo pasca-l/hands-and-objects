@@ -84,7 +84,7 @@ class StateChgObjDataset(Dataset):
         if extraction:
             extractor = Extractor(self.data_dir, self.flatten_json)
             for option in extraction:
-                extractor.eval(f"{option}")()
+                getattr(extractor, option)()
 
     def __len__(self):
         return len(self.flatten_json)
