@@ -95,7 +95,7 @@ class PNRTempLocDataset(Dataset):
         info["original_fps"] = video.get(cv2.CAP_PROP_FPS)
 
         frames, labels, fps, frame_nums = self._sample_clip_with_label(info)
-        frames = torch.as_tensor(frames).permute(3, 0, 1, 2)
+        frames = torch.as_tensor(frames, dtype=torch.float).permute(3, 0, 1, 2)
         frames = self.transform(frames)
 
         info["sample_frame_num"] = frame_nums
@@ -198,11 +198,15 @@ class PNRTempLocDataset(Dataset):
             ret, frame = video.read()
             if ret == False:
                 break
-            if counter in frame_nums:
-                frames.append([frame])
+            if counter in sorted(frame_nums):
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame = cv2.resize(frame, (224, 224))
+                frame = np.expand_dims(frame, axis=0).astype(np.float32)
+                frames.append(frame)
 
             counter += 1
 
+        video.release()
         return frames
 
     # def _load_frame(self, frame_path):
