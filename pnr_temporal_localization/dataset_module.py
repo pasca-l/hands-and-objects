@@ -79,9 +79,9 @@ class PNRTempLocDataset(Dataset):
         self.transform = FrameTransform()
 
         self.flatten_json = json_handler(self.json_file)
-        if extraction:
-            extractor = Extractor(self.data_dir, self.flatten_json)
-            extractor.extract_action_clip_frame()
+        # if extraction:
+        #     extractor = Extractor(self.data_dir, self.flatten_json)
+        #     extractor.extract_action_clip_frame()
 
     def __len__(self):
         return len(self.flatten_json)
@@ -116,16 +116,18 @@ class PNRTempLocDataset(Dataset):
             self._sample_out_frames(
                 pnr_frame, random_start_frame, random_end_frame, 32)
 
-        frames = []
-        for frame_num in sample_frame_num:
-            frame_path = f"{self.action_frame_dir}{info['clip_uid']}" +\
-                         f"/{frame_num}.png"
-            try:
-                image = self._load_frame(frame_path)
-            except:
-                print(f"Image does not exist : {frame_path}")
-                return
-            frames.append(image)
+        # frames = []
+        # for frame_num in sample_frame_num:
+        #     frame_path = f"{self.action_frame_dir}{info['clip_uid']}" +\
+        #                  f"/{frame_num}.png"
+        #     try:
+        #         image = self._load_frame(frame_path)
+        #     except:
+        #         print(f"Image does not exist : {frame_path}")
+        #         return
+        #     frames.append(image)
+
+        frames = self._load_frames(sample_frame_num, info)
 
         keyframe_idx = np.argmin(frame_pnr_dist)
         onehot_label = np.zeros(len(sample_frame_num))
@@ -178,14 +180,37 @@ class PNRTempLocDataset(Dataset):
             sample_frame_num[:to_total_frames], 
             frame_pnr_dist[:to_total_frames]
         )
-    
-    def _load_frame(self, frame_path):
-        frame = cv2.imread(frame_path)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = cv2.resize(frame, (224, 224))
-        frame = np.expand_dims(frame, axis=0).astype(np.float32)
 
-        return frame
+    def _load_frames(self, frame_nums, info):
+        video_path = f"{self.data_dir}{info['clip_uid']}.mp4"
+        video = cv2.VideoCapture(video_path)
+        info["original_fps"] = video.get(cv2.CAP_PROP_FPS)
+
+        if not video.isOpened():
+            print(f"Video cannot be opened : {video_path}")
+            return
+
+        frames = []
+        counter = 1
+
+        while True:
+            ret, frame = video.read()
+            if ret == False:
+                break
+            if counter in frame_nums:
+                frames.append(frame)
+
+            counter += 1
+
+        return frames
+
+    # def _load_frame(self, frame_path):
+    #     frame = cv2.imread(frame_path)
+    #     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    #     frame = cv2.resize(frame, (224, 224))
+    #     frame = np.expand_dims(frame, axis=0).astype(np.float32)
+
+    #     return frame
 
 
 class FrameTransform():
