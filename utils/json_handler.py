@@ -5,16 +5,7 @@ from tqdm import tqdm
 class JsonHandler():
     def __init__(self, ann_task_name):
         self.ann_task_name = ann_task_name
-        self.unopenables = [
-            '73de9018-dc67-48ca-a0a1-5697f9f100cd',
-            'e964bb42-f596-4dca-96de-0940b52f0c75',
-            'ded39483-8be8-4f8a-a3de-c86b86fd1e7c',
-            'f48b7adc-724a-4d90-89a9-fbf9d892005b',
-            '8365e83f-cbf3-4260-a76f-565ed04eddf0',
-            '0cb0be49-3987-4589-8f20-985231be820f',
-            'e8cf9894-0cc7-4480-b490-885308bfb513'
-        ]
-    
+
     def __call__(self, json_file):
         """
         Unpacks annotation json file to list of dicts,
@@ -35,9 +26,6 @@ class JsonHandler():
 
         json_data = json.load(open(json_file, 'r'))
         for data in tqdm(json_data['clips'], desc='Preparing data'):
-            if data['clip_uid'] in self.unopenables:
-                continue
-
             for frame_data in data['frames']:
                 # pnr frame must be included in any of the batch.
                 try:
@@ -120,9 +108,6 @@ class JsonHandler():
 
         json_data = json.load(open(json_file, 'r'))
         for data in tqdm(json_data['clips'], desc='Preparing data'):
-            if data['clip_uid'] in self.unopenables:
-                continue
-
             json_dict = {
                 "clip_id": data['clip_id'],
                 "clip_uid": data['clip_uid'],

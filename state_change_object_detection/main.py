@@ -33,19 +33,13 @@ def main():
         batch_size=4
     )
 
+    return
+
     module = importlib.import_module(f'models.{args.model}')
     system = module.System()
     classifier = PNRLocalizer(
         sys=system
     )
-
-    import torch
-    # dataset.setup()
-    # data = next(iter(dataset.train_dataloader()))
-    test_data = torch.rand(4, 3, 32, 224, 224)
-    a = classifier.model(test_data)
-    print(len(a), [i.shape for i in a])
-    return
 
     logger = pl.loggers.TensorBoardLogger(
         save_dir=args.log_save_dir
