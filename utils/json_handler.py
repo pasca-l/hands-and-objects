@@ -10,7 +10,9 @@ class JsonHandler():
             'e964bb42-f596-4dca-96de-0940b52f0c75',
             'ded39483-8be8-4f8a-a3de-c86b86fd1e7c',
             'f48b7adc-724a-4d90-89a9-fbf9d892005b',
-            '8365e83f-cbf3-4260-a76f-565ed04eddf0'
+            '8365e83f-cbf3-4260-a76f-565ed04eddf0',
+            '0cb0be49-3987-4589-8f20-985231be820f',
+            'e8cf9894-0cc7-4480-b490-885308bfb513'
         ]
     
     def __call__(self, json_file):
