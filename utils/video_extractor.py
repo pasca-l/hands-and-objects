@@ -102,7 +102,7 @@ class Extractor():
         """
         Saves all frames clips as compressed npz (file containing multiple 
         numpy arrays) binary file, under 
-        DATA_DIR/clip_arrays/{clip_uid}.npz
+        DATA_DIR/clip_arrays/{clip_uid}_{array_per_file}.npz
         """
 
         array_dir = f"{self.data_dir}clip_arrays/"
@@ -110,21 +110,28 @@ class Extractor():
 
         for info in tqdm(self.flatten_json,
                          desc='Loading frames, and saving as npz'):
+            clip_dir = f"{array_dir}{info['clip_uid']}"
+            os.makedirs(clip_dir, exist_ok=True)
             video_path = f"{self.data_dir}clips/{info['clip_uid']}.mp4"
-            array_save_path = f"{array_dir}{info['clip_uid']}"
-
-            if os.path.exists(f"{array_save_path}.npz"):
-                continue
 
             video = cv2.VideoCapture(video_path)
+            array_per_file = -(-video.get(cv2.CAP_PROP_FRAME_COUNT) // 10)
 
+            counter = 0
             array_list = []
+
             while True:
                 ret, frame = video.read()
                 if ret == False:
                     break
-                array_list.append(frame)
 
-            np.savez(array_save_path, array_list)
+                if counter != 0 and counter % array_per_file == 0:
+                    array_save_path =\
+                        f"{clip_dir}/{int(counter // array_per_file)}"
+                    if not os.path.exists(f"{array_save_path}.npz"):
+                        np.savez_compressed(array_save_path, array_list)
+
+                array_list.append(frame)
+                counter += 1
 
             video.release()
