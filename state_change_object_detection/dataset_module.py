@@ -13,23 +13,24 @@ from video_extractor import Extractor
 
 class StateChgObjDataModule(pl.LightningDataModule):
     def __init__(self, data_dir, ann_dir, ann_task_name='fho_scod',
-                 batch_size=1):
+                 extract_options=[], batch_size=1):
         super().__init__()
-        self.ann_task_name = ann_task_name
+        self.task_name = ann_task_name
+        self.extracts = extract_options
+        self.batch_size = batch_size
         self.path_dict = {
             "data_dir": data_dir,
             "train_json": f"{ann_dir}{ann_task_name}_train.json",
             "val_json": f"{ann_dir}{ann_task_name}_val.json",
         }
-        self.batch_size = batch_size
+        self.json_handler = JsonHandler(ann_task_name)
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
-            json_handler = JsonHandler(self.ann_task_name)
-            self.train_data =\
-                StateChgObjDataset('train', json_handler, **self.path_dict)
-            self.val_data =\
-                StateChgObjDataset('val', json_handler, **self.path_dict)
+            self.train_data = StateChgObjDataset(
+                'train', self.task_name, self.extracts, **self.path_dict)
+            self.val_data = StateChgObjDataset(
+                'val', self.task_name, self.extracts, **self.path_dict)
 
         if stage == "test" or stage is None:
             self.test_data = None
@@ -70,17 +71,20 @@ class StateChgObjDataModule(pl.LightningDataModule):
 
 
 class StateChgObjDataset(Dataset):
-    def __init__(self, phase, json_handler, extraction=False, **path_dict):
+    def __init__(self, phase, task_name, extraction, **path_dict):
         self.data_dir = path_dict["data_dir"]
         self.json_file = path_dict[f"{phase}_json"]
-        # self.action_frame_dir = f"{self.data_dir}action_frames/"
+        self.frame_dir = f"{self.data_dir}clip_arrays/"
 
         self.transform = FrameTransform()
 
+        json_handler = JsonHandler(task_name)
         self.flatten_json = json_handler(self.json_file)
-        # if extraction:
-        #     extractor = Extractor(self.data_dir, self.flatten_json)
-        #     extractor.extract_action_clip_frame()
+
+        if extraction:
+            extractor = Extractor(self.data_dir, self.flatten_json)
+            for option in extraction:
+                extractor.eval(f"{option}")()
 
     def __len__(self):
         return len(self.flatten_json)
@@ -99,10 +103,13 @@ class StateChgObjDataset(Dataset):
     def _get_frames(self, info):
         frames = []
         for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
-            frame_path = f"{self.action_frame_dir}{info['clip_uid']}" +\
-                         f"/{info[f'{frame_type}_num_clip']}.png"
+            frame_path = f"{self.frame_dir}{info['clip_uid']}.npz"
             try:
-                image = self._load_frame(frame_path)
+                frame_arrays = np.load(frame_path)
+                frame = frame_arrays[f"arr_{info[f'{frame_type}_num_clip']}"]
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame = cv2.resize(frame, (224, 224))
+                image = np.expand_dims(frame, axis=0).astype(np.float32)
             except:
                 print(f"Image does not exist : {frame_path}")
                 return
@@ -136,14 +143,6 @@ class StateChgObjDataset(Dataset):
             object_labels.append(temp)
 
         return object_labels
-
-    def _load_frame(self, frame_path):
-        frame = cv2.imread(frame_path)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = cv2.resize(frame, (224, 224))
-        frame = np.expand_dims(frame, axis=0).astype(np.float32)
-
-        return frame
 
 
 class FrameTransform():

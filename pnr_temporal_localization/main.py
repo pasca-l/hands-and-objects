@@ -15,7 +15,7 @@ def option_parser():
     parser.add_argument('--ann_dir', type=str,
                         default='../../../data/ego4d/annotations/')
     parser.add_argument('--data_dir', type=str, 
-                        default='../../../data/ego4d/clips/')
+                        default='../../../data/ego4d/')
     parser.add_argument('--model', type=str, default="cnnlstm",
         choices=["cnnlstm", "slowfastperceiver", "bmn", "i3d_resnet",
                  "hand_salience"])
