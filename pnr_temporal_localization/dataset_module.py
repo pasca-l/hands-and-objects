@@ -90,9 +90,9 @@ class PNRTempLocDataset(Dataset):
     def __getitem__(self, index):
         info = self.flatten_json[index]
 
-        video_path = f"{self.data_dir}{info['clip_uid']}.mp4"
-        video = cv2.VideoCapture(video_path)
-        info["original_fps"] = video.get(cv2.CAP_PROP_FPS)
+        # video_path = f"{self.data_dir}{info['clip_uid']}.mp4"
+        # video = cv2.VideoCapture(video_path)
+        # info["original_fps"] = video.get(cv2.CAP_PROP_FPS)
 
         frames, labels, fps, frame_nums = self._sample_clip_with_label(info)
         frames = torch.as_tensor(frames, dtype=torch.float).permute(3, 0, 1, 2)
