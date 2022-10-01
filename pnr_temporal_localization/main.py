@@ -51,11 +51,11 @@ def main():
         filename=args.model
     )
     trainer = pl.Trainer(
-        # accelerator='auto',
-        # devices='auto',
-        # auto_select_gpus=True,
-        accelerator='gpu',
-        devices=1,
+        accelerator='auto',
+        devices='auto',
+        auto_select_gpus=True,
+        # accelerator='gpu',
+        # devices=1,
         max_epochs=10,
         logger=logger,
         callbacks=[checkpoint_callback]
