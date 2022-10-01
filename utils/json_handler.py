@@ -25,7 +25,13 @@ class JsonHandler():
         flatten_json_list = []
 
         json_data = json.load(open(json_file, 'r'))
-        for data in tqdm(json_data['clips'], desc='Preparing data'):
+        # for data in tqdm(json_data['clips'], desc='Preparing data'):
+        for counter, data in enumerate(tqdm(json_data['clips'], desc='Preparing data')):
+
+            # shortening json readings
+            if counter > 50:
+                break
+
             for frame_data in data['frames']:
                 # pnr frame must be included in any of the batch.
                 try:
