@@ -7,6 +7,7 @@ This project holds codes for training models to accomplish certain tasks. Using 
 
 ## Tasks
 1. PNR temporal localization
-   - From a video clip, 
+> From a video clip, the objective is to find the key frame where the object experiences the point of no return (PNR), in other words, the point at which the state of the object cannot be reversed.
 
 2. State change object detection
+> The objective is to determine the object that is undergoing a state change. 3 frames, PNR frame, and frames one before and one after the PNR point are given as input.
