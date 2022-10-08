@@ -29,7 +29,7 @@ class JsonHandler():
         for counter, data in enumerate(tqdm(json_data['clips'], desc='Preparing data')):
 
             # shortening json readings
-            if counter > 10:
+            if counter > 49:
                 break
 
             for frame_data in data['frames']:
