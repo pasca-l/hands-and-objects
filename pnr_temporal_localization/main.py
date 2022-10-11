@@ -1,4 +1,3 @@
-import json
 import sys
 import argparse
 import shutil
@@ -17,7 +16,7 @@ from video_extractor import Extractor
 def option_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--phase', type=str, default='train',
-                        choices=['train', 'test'])
+                        choices=['train', 'infer'])
     parser.add_argument('--task', type=str, default="fho_hands",
                         choices=["fho_hands"])
     parser.add_argument('--log_save_dir', type=str, default='./logs/')
@@ -44,7 +43,7 @@ def main():
     json_dict = {
         "train": json_handler(f"{json_partial_name}_train.json"),
         "val": json_handler(f"{json_partial_name}_val.json"),
-        # "test": json_handler(f"{json_partial_name}_test_unannotated.json")
+        "infer": json_handler(f"{json_partial_name}_test_unannotated.json")
     }
 
     dataset = PNRTempLocDataModule(
@@ -79,14 +78,19 @@ def main():
         callbacks=[checkpoint_callback]
     )
 
-    trainer.fit(classifier, dataset)
+    if args.phase == 'train':
+        trainer.fit(classifier, dataset)
+    elif args.phase == 'infer':
+        checkpoint = torch.load(f'{args.log_save_dir}{args.model}.ckpt')
+        classifier.load_state_dict(checkpoint['state_dict']) # strict=False
+        trainer.predict(classifier, dataset)
 
-    # save pth file
-    save_name = f'{args.log_save_dir}{args.model}'
-    model = system.model
-    checkpoint = torch.load(f'{save_name}.ckpt')
-    model.load_state_dict(checkpoint['model_state_dict'])
-    torch.save(model.state_dict(), f'{save_name}.pth')
+    # # save pth file
+    # save_name = f'{args.log_save_dir}{args.model}'
+    # checkpoint = torch.load(f'{save_name}.ckpt')
+    # model = system.model
+    # model.load_state_dict(checkpoint['state_dict'], strict=False)
+    # torch.save(model.state_dict(), f'{save_name}.pth')
 
 
 if __name__ == '__main__':
