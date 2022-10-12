@@ -49,10 +49,10 @@ class Extractor():
     def extract_frame_as_image(self):
         """
         Saves all frames of 8s clips containing action as png image, under 
-        DATA_DIR/action_clip_frames/{clip_uid}/*.png
+        DATA_DIR/frames/{clip_uid}/*.png
         """
 
-        frame_dir = f"{self.data_dir}action_clip_frames/"
+        frame_dir = f"{self.data_dir}frames/"
         os.makedirs(frame_dir, exist_ok=True)
 
         frame_dict = {}
@@ -94,44 +94,6 @@ class Extractor():
                 if counter in frame_nums:
                     frame_save_path = f"{frame_save_dir}{counter}.png"
                     cv2.imwrite(frame_save_path, frame)
-                counter += 1
-
-            video.release()
-
-    def extract_frame_as_array(self):
-        """
-        Saves all frames clips as compressed npz (file containing multiple 
-        numpy arrays) binary file, under 
-        DATA_DIR/clip_arrays/{clip_uid}_{array_per_file}.npz
-        """
-
-        array_dir = f"{self.data_dir}clip_arrays/"
-        os.makedirs(array_dir, exist_ok=True)
-
-        for info in tqdm(self.flatten_json,
-                         desc='Loading frames, and saving as npz'):
-            clip_dir = f"{array_dir}{info['clip_uid']}"
-            os.makedirs(clip_dir, exist_ok=True)
-            video_path = f"{self.data_dir}clips/{info['clip_uid']}.mp4"
-
-            video = cv2.VideoCapture(video_path)
-            array_per_file = -(-video.get(cv2.CAP_PROP_FRAME_COUNT) // 10)
-
-            counter = 0
-            array_list = []
-
-            while True:
-                ret, frame = video.read()
-                if ret == False:
-                    break
-
-                if counter != 0 and counter % array_per_file == 0:
-                    array_save_path =\
-                        f"{clip_dir}/{int(counter // array_per_file)}"
-                    if not os.path.exists(f"{array_save_path}.npz"):
-                        np.savez_compressed(array_save_path, array_list)
-
-                array_list.append(frame)
                 counter += 1
 
             video.release()
