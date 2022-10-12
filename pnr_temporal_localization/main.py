@@ -43,7 +43,7 @@ def main():
     json_dict = {
         "train": json_handler(f"{json_partial_name}_train.json"),
         "val": json_handler(f"{json_partial_name}_val.json"),
-        "infer": json_handler(f"{json_partial_name}_test_unannotated.json")
+        # "infer": json_handler(f"{json_partial_name}_test_unannotated.json")
     }
 
     dataset = PNRTempLocDataModule(

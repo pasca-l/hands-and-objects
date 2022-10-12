@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import pytorch_lightning as pl
 from torchmetrics import Metric
@@ -37,7 +36,7 @@ class PNRLocalizer(pl.LightningModule):
         self.log("val_loss", loss, on_step=False, on_epoch=True)
         info = batch[-1]
         self.val_err(logits, label, info)
-        self.log("val_err", self.val_err, on_step_=False, on_epoch=True)
+        self.log("val_err", self.val_err, on_step=False, on_epoch=True)
 
     def configure_optimizers(self):
         return self.optimizer
@@ -46,12 +45,12 @@ class PNRLocalizer(pl.LightningModule):
 class AbsoluteTemporalError(Metric):
     def __init__(self):
         super().__init__()
-        self.add_state("error", default=torch.tensor(0), dist_reduce_fx='sum')
-        self.add_state("total", default=torch.tensor(0), dist_reduce_fx='sum')
+        self.add_state("error", default=torch.tensor(0.), dist_reduce_fx='sum')
+        self.add_state("total", default=torch.tensor(0.), dist_reduce_fx='sum')
 
     def update(self, preds, target, info):
         batch_size, sample_num = preds.shape[0], preds.shape[1]
-        diff = np.abs(np.argmax(preds) - np.argmax(target))
+        diff = torch.abs(torch.argmax(preds) - torch.argmax(target))
         frame_error = info["total_frame_num"] / sample_num * diff
         
         self.error += torch.sum(frame_error)
