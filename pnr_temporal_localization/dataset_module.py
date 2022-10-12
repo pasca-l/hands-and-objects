@@ -90,6 +90,13 @@ class PNRTempLocDataset(Dataset):
             self._sample_out_frames(
                 pnr_frame, random_start_frame, random_end_frame, 32)
 
+        # include values for metric
+        info["total_frame_num"] = random_end_frame - random_start_frame
+        info["fps"] = 30
+        # video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
+        # video = cv2.VideoCapture(video_path)
+        # info["fps"] = video.get(cv2.CAP_PROP_FPS)
+
         frames = self._load_frames(sample_frame_num, info)
 
         keyframe_idx = np.argmin(frame_pnr_dist)
@@ -164,32 +171,6 @@ class PNRTempLocDataset(Dataset):
             frames.append(frame)
 
         return frames
-
-        # video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
-        # video = cv2.VideoCapture(video_path)
-        # info["original_fps"] = video.get(cv2.CAP_PROP_FPS)
-
-        # if not video.isOpened():
-        #     print(f"Video cannot be opened : {video_path}")
-        #     return
-
-        # frames = []
-        # counter = 1
-
-        # while True:
-        #     ret, frame = video.read()
-        #     if ret == False:
-        #         break
-        #     if counter in sorted(frame_nums):
-        #         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        #         frame = cv2.resize(frame, (224, 224))
-        #         frame = np.expand_dims(frame, axis=0).astype(np.float32)
-        #         frames.append(frame)
-
-        #     counter += 1
-
-        # video.release()
-        # return frames
 
 
 class FrameTransform():
