@@ -20,7 +20,7 @@ class PNRTempLocDataModule(pl.LightningDataModule):
             self.val_data =\
                 PNRTempLocDataset(self.data_dir, self.json_dict['val'])
 
-        if stage == "test" or stage is None:
+        if stage == "test":
             self.test_data = None
 
         if stage == "predict":
@@ -40,20 +40,6 @@ class PNRTempLocDataModule(pl.LightningDataModule):
             self.val_data,
             batch_size=self.batch_size,
             num_workers=8,
-            pin_memory=True
-        )
-
-    def test_dataloader(self):
-        return DataLoader(
-            self.test_data,
-            batch_size=self.batch_size,
-            pin_memory=True
-        )
-
-    def predict_dataloader(self):
-        return DataLoader(
-            self.predict_data,
-            batch_size=self.batch_size,
             pin_memory=True
         )
 
