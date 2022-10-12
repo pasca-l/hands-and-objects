@@ -1,7 +1,6 @@
 import sys
 import argparse
 import importlib
-from tkinter import Frame
 import numpy as np
 import cv2
 import torch
