@@ -50,8 +50,8 @@ class AbsoluteTemporalError(Metric):
 
     def update(self, preds, target, info):
         batch_size, sample_num = preds.shape[0], preds.shape[1]
-        diff = torch.abs(torch.argmax(preds) - torch.argmax(target))
-        frame_error = info["total_frame_num"] / sample_num * diff
+        diff = torch.argmax(preds, dim=1) - torch.argmax(target, dim=1)
+        frame_error = info["total_frame_num"] / sample_num * torch.abs(diff)
         
         self.error += torch.sum(frame_error)
         self.total += batch_size
