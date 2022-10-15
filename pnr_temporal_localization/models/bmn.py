@@ -29,6 +29,7 @@ class BMNwithHead(nn.Module):
         self.model = BoundaryMatchingNetwork(self.frame_num)
 
     def forward(self, x):
+        x.requires_grad = True
         f = self.backbone(x)
         f = f.permute(0,1,3,4,2).reshape(-1, 224*224*2, self.frame_num)
         conf_map, start, end = self.model(f)
@@ -171,63 +172,66 @@ class BMNLabelTransform():
     def __call__(self, batch):
         # change the measurement from second to percentage
         info = batch[2]
+        device = batch[0].device
         keyframe_time = (info["clip_pnr_frame"] - info["clip_start_frame"]) / 30
-        gt_bbox = []
-        gt_iou_map = []
-        tmp_start = max(min(1, self.prec_frame_time / self.duration), 0)
-        tmp_end = max(min(1, keyframe_time / self.duration), 0)
-        gt_bbox.append([tmp_start, tmp_end])
+        tmp_start = torch.fmax(torch.fmin(torch.ones(len(batch[0])), torch.tensor((self.prec_frame_time / self.duration))), torch.tensor((0))).to(device)
+        tmp_end = torch.fmax(torch.fmin(torch.tensor((1)), keyframe_time / self.duration), torch.tensor((0))).to(device)
 
         #generate R_s and R_e
-        gt_bbox = np.array(gt_bbox)
-        gt_xmins = gt_bbox[:, 0]
-        gt_xmaxs = gt_bbox[:, 1]
-        gt_lens = gt_xmaxs - gt_xmins
-        gt_len_small = 3 * self.temporal_gap
-        gt_start_bboxs = np.stack((gt_xmins - gt_len_small / 2, gt_xmins + gt_len_small / 2), axis=1)
-        gt_end_bboxs = np.stack((gt_xmaxs - gt_len_small / 2, gt_xmaxs + gt_len_small / 2), axis=1)
+        # gt_bbox = np.array([tmp_start.to('cpu').detach().numpy(), tmp_end.to('cpu').detach().numpy()])
+        # gt_xmins = gt_bbox[:, 0]
+        # gt_xmaxs = gt_bbox[:, 1]
+        # gt_len_small = 3 * self.temporal_gap
+        # gt_start_bboxs = np.stack((gt_xmins - gt_len_small / 2, gt_xmins + gt_len_small / 2), axis=1)
+        # gt_end_bboxs = np.stack((gt_xmaxs - gt_len_small / 2, gt_xmaxs + gt_len_small / 2), axis=1)
 
-        gt_iou_map = np.zeros([self.temporal_scale, self.temporal_scale])
+        # gt_iou_map = np.zeros([self.temporal_scale, self.temporal_scale])
+        # for i in range(self.temporal_scale):
+        #     for j in range(i, self.temporal_scale):
+        #         gt_iou_map[i, j] = np.max(
+        #             self._iou_with_anchors(i * self.temporal_gap, (j + 1) * self.temporal_gap, gt_xmins, gt_xmaxs))
+        # gt_iou_map = torch.Tensor(gt_iou_map).to(device)
+
+        gt_len_small = 3 * self.temporal_gap
+        gt_start_bboxs = torch.stack((tmp_start - gt_len_small / 2, tmp_start + gt_len_small / 2), axis=1)
+        gt_end_bboxs = torch.stack((tmp_end - gt_len_small / 2, tmp_end + gt_len_small / 2), axis=1)
+
+        gt_iou_map = torch.zeros(len(batch[0]), self.temporal_scale, self.temporal_scale)
         for i in range(self.temporal_scale):
             for j in range(i, self.temporal_scale):
-                gt_iou_map[i, j] = np.max(
-                    self._iou_with_anchors(i * self.temporal_gap, (j + 1) * self.temporal_gap, gt_xmins, gt_xmaxs))
-        gt_iou_map = torch.Tensor(gt_iou_map)
+                gt_iou_map[:, i, j] = self._iou_with_anchors(torch.as_tensor(i * self.temporal_gap), torch.as_tensor((j + 1) * self.temporal_gap), tmp_start, tmp_end)
 
         # calculate the ioa for all timestamp
         match_score_start = []
         for jdx in range(len(self.anchor_xmin)):
-            match_score_start.append(np.max(
-                self._ioa_with_anchors(self.anchor_xmin[jdx], self.anchor_xmax[jdx], gt_start_bboxs[:, 0], gt_start_bboxs[:, 1])))
+            match_score_start.append(self._ioa_with_anchors(torch.as_tensor(self.anchor_xmin[jdx]), torch.as_tensor(self.anchor_xmax[jdx]), gt_start_bboxs[:, 0], gt_start_bboxs[:, 1]))
         match_score_end = []
         for jdx in range(len(self.anchor_xmin)):
-            match_score_end.append(np.max(
-                self._ioa_with_anchors(self.anchor_xmin[jdx], self.anchor_xmax[jdx], gt_end_bboxs[:, 0], gt_end_bboxs[:, 1])))
-        match_score_start = torch.Tensor(match_score_start)
-        match_score_end = torch.Tensor(match_score_end)
+            match_score_end.append(self._ioa_with_anchors(torch.as_tensor(self.anchor_xmin[jdx]), torch.as_tensor(self.anchor_xmax[jdx]), gt_end_bboxs[:, 0], gt_end_bboxs[:, 1]))
+        match_score_start = torch.cat(match_score_start).reshape(len(batch[0]), -1)
+        match_score_end = torch.cat(match_score_end).reshape(len(batch[0]), -1)
 
-        return [match_score_start, match_score_end, gt_iou_map]
+        return [gt_iou_map, match_score_start, match_score_end]
 
     def _ioa_with_anchors(self, anchors_min, anchors_max, box_min, box_max):
         # calculate the overlap proportion between the anchor and all bbox for supervise signal,
         # the length of the anchor is 0.01
         len_anchors = anchors_max - anchors_min
-        int_xmin = np.maximum(anchors_min, box_min)
-        int_xmax = np.minimum(anchors_max, box_max)
-        inter_len = np.maximum(int_xmax - int_xmin, 0.)
-        scores = np.divide(inter_len, len_anchors)
+        int_xmin = torch.maximum(anchors_min, box_min)
+        int_xmax = torch.minimum(anchors_max, box_max)
+        inter_len = torch.maximum(int_xmax - int_xmin, torch.zeros(int_xmin.shape).to(int_xmin.device))
+        scores = torch.divide(inter_len, len_anchors)
         return scores
 
     def _iou_with_anchors(self, anchors_min, anchors_max, box_min, box_max):
         """Compute jaccard score between a box and the anchors.
         """
         len_anchors = anchors_max - anchors_min
-        int_xmin = np.maximum(anchors_min, box_min)
-        int_xmax = np.minimum(anchors_max, box_max)
-        inter_len = np.maximum(int_xmax - int_xmin, 0.)
+        int_xmin = torch.maximum(anchors_min, box_min)
+        int_xmax = torch.minimum(anchors_max, box_max)
+        inter_len = torch.maximum(int_xmax - int_xmin, torch.zeros(int_xmin.shape).to(int_xmin.device))
         union_len = len_anchors - inter_len + box_max - box_min
-        # print inter_len,union_len
-        jaccard = np.divide(inter_len, union_len)
+        jaccard = torch.divide(inter_len, union_len)
         return jaccard
 
 
@@ -235,28 +239,25 @@ class BMNLossFunc(nn.Module):
     def __init__(self, frame_num=32):
         super().__init__()
         self.temporal_scale = frame_num
-        self.bm_mask = np.triu(
-            np.ones((self.temporal_scale, self.temporal_scale)))
-        self.device = None
 
     def forward(self, output, target):
         conf_map, start, end = output
         label_conf, label_start, label_end = target
 
-        self.device = conf_map.device
-
         loss = self.bmn_loss_func(conf_map, start, end, label_conf, label_start, label_end)
 
         return loss
-    
+
     def bmn_loss_func(self, pred_bm, pred_start, pred_end, gt_iou_map, gt_start, gt_end):
         pred_bm_reg = pred_bm[:, 0].contiguous()
         pred_bm_cls = pred_bm[:, 1].contiguous()
 
-        gt_iou_map = gt_iou_map * self.bm_mask
+        bm_mask = np.triu(np.ones((self.temporal_scale, self.temporal_scale)))
+        bm_mask = torch.Tensor(bm_mask).to(pred_bm.device)
+        gt_iou_map = gt_iou_map.to(pred_bm.device) * bm_mask
 
-        pem_reg_loss = self.pem_reg_loss_func(pred_bm_reg, gt_iou_map, self.bm_mask)
-        pem_cls_loss = self.pem_cls_loss_func(pred_bm_cls, gt_iou_map, self.bm_mask)
+        pem_reg_loss = self.pem_reg_loss_func(pred_bm_reg, gt_iou_map, bm_mask)
+        pem_cls_loss = self.pem_cls_loss_func(pred_bm_cls, gt_iou_map, bm_mask)
         tem_loss = self.tem_loss_func(pred_start, pred_end, gt_start, gt_end)
 
         loss = tem_loss + 10 * pem_reg_loss + pem_cls_loss
@@ -264,8 +265,8 @@ class BMNLossFunc(nn.Module):
 
     def tem_loss_func(self, pred_start, pred_end, gt_start, gt_end):
         def bi_loss(pred_score, gt_label):
-            pred_score = pred_score.view(-1)
             gt_label = gt_label.view(-1)
+            pred_score = pred_score.view(-1, gt_label.shape[0])
             pmask = (gt_label > 0.5).float()
             num_entries = len(pmask)
             num_positive = torch.sum(pmask)
@@ -275,7 +276,7 @@ class BMNLossFunc(nn.Module):
             epsilon = 0.000001
             loss_pos = coef_1 * torch.log(pred_score + epsilon) * pmask
             loss_neg = coef_0 * torch.log(1.0 - pred_score + epsilon) * (1.0 - pmask)
-            loss = -1 * torch.mean(loss_pos + loss_neg)
+            loss = -1 * torch.mean(loss_pos + loss_neg, dim=1)
             return loss
 
         loss_start = bi_loss(pred_start, gt_start)
@@ -294,19 +295,19 @@ class BMNLossFunc(nn.Module):
         num_l = torch.sum(u_lmask)
 
         r_m = num_h / (num_m + 1e-10)
-        u_smmask = torch.Tensor(np.random.rand(*gt_iou_map.shape)).to(self.device)
+        u_smmask = torch.Tensor(np.random.rand(*gt_iou_map.shape)).to(u_mmask.device)
         u_smmask = u_mmask * u_smmask
         u_smmask = (u_smmask > (1. - r_m)).float()
 
         r_l = num_h / (num_l + 1e-10)
-        u_slmask = torch.Tensor(np.random.rand(*gt_iou_map.shape)).to(self.device)
+        u_slmask = torch.Tensor(np.random.rand(*gt_iou_map.shape)).to(u_lmask.device)
         u_slmask = u_lmask * u_slmask
         u_slmask = (u_slmask > (1. - r_l)).float()
 
         weights = u_hmask + u_smmask + u_slmask
 
         loss = nnf.mse_loss(pred_score * weights, gt_iou_map * weights)
-        loss = 0.5 * torch.sum(loss * torch.ones(*weights.shape).to(self.device)) / (torch.sum(weights)+1e-10)
+        loss = 0.5 * torch.sum(loss * torch.ones(*weights.shape).to(loss.device)) / (torch.sum(weights)+1e-10)
 
         return loss
 
