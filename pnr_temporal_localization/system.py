@@ -53,23 +53,3 @@ class AbsoluteTemporalError(Metric):
 
     def compute(self):
         return self.error / self.total
-
-
-class BMNErrorMetric(Metric):
-    def __init__(self):
-        super().__init__()
-        self.add_state("error", default=torch.tensor(0.), dist_reduce_fx='sum')
-        self.add_state("total", default=torch.tensor(0.), dist_reduce_fx='sum')
-
-    def update(self, preds, target, info):
-        preds = preds[0]
-        target = target[0]
-        batch_size, sample_num = preds.shape[0], preds.shape[1]
-        diff = torch.argmax(preds[:,0,:,0].reshape(batch_size, -1), dim=1) - torch.argmax(target[:,:,0].reshape(batch_size, -1), dim=1).to(preds.device)
-        frame_error = info["total_frame_num"] / sample_num * torch.abs(diff)
-        
-        self.error += torch.sum(frame_error)
-        self.total += batch_size
-
-    def compute(self):
-        return self.error / self.total

@@ -178,20 +178,6 @@ class BMNLabelTransform():
         tmp_end = torch.fmax(torch.fmin(torch.tensor((1)), keyframe_time / self.duration), torch.tensor((0))).to(device)
 
         #generate R_s and R_e
-        # gt_bbox = np.array([tmp_start.to('cpu').detach().numpy(), tmp_end.to('cpu').detach().numpy()])
-        # gt_xmins = gt_bbox[:, 0]
-        # gt_xmaxs = gt_bbox[:, 1]
-        # gt_len_small = 3 * self.temporal_gap
-        # gt_start_bboxs = np.stack((gt_xmins - gt_len_small / 2, gt_xmins + gt_len_small / 2), axis=1)
-        # gt_end_bboxs = np.stack((gt_xmaxs - gt_len_small / 2, gt_xmaxs + gt_len_small / 2), axis=1)
-
-        # gt_iou_map = np.zeros([self.temporal_scale, self.temporal_scale])
-        # for i in range(self.temporal_scale):
-        #     for j in range(i, self.temporal_scale):
-        #         gt_iou_map[i, j] = np.max(
-        #             self._iou_with_anchors(i * self.temporal_gap, (j + 1) * self.temporal_gap, gt_xmins, gt_xmaxs))
-        # gt_iou_map = torch.Tensor(gt_iou_map).to(device)
-
         gt_len_small = 3 * self.temporal_gap
         gt_start_bboxs = torch.stack((tmp_start - gt_len_small / 2, tmp_start + gt_len_small / 2), axis=1)
         gt_end_bboxs = torch.stack((tmp_end - gt_len_small / 2, tmp_end + gt_len_small / 2), axis=1)
@@ -326,3 +312,23 @@ class BMNLossFunc(nn.Module):
         loss_neg = coef_0 * torch.log(1.0 - pred_score + epsilon) * nmask
         loss = -1 * torch.sum(loss_pos + loss_neg) / (num_entries+1e-10)
         return loss
+
+
+class BMNErrorMetric(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("error", default=torch.tensor(0.), dist_reduce_fx='sum')
+        self.add_state("total", default=torch.tensor(0.), dist_reduce_fx='sum')
+
+    def update(self, preds, target, info):
+        # target must be batch[1], the one-hot label
+        preds = preds[0]
+        batch_size, sample_num = preds.shape[0], preds.shape[-1]
+        diff = torch.argmax(preds[:,0,:,0].reshape(batch_size, -1), dim=1) - torch.argmax(target, dim=1)
+        frame_error = info["total_frame_num"] / sample_num * torch.abs(diff)
+        
+        self.error += torch.sum(frame_error)
+        self.total += batch_size
+
+    def compute(self):
+        return self.error / self.total
