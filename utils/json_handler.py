@@ -28,10 +28,6 @@ class JsonHandler():
         # for data in tqdm(json_data['clips'], desc='Preparing data'):
         for counter, data in enumerate(tqdm(json_data['clips'], desc='Preparing data')):
 
-            # shortening json readings
-            if counter > 49:
-                break
-
             for frame_data in data['frames']:
                 # pnr frame must be included in any of the batch.
                 try:
