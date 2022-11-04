@@ -5,12 +5,11 @@ from tqdm import tqdm
 
 
 class Extractor():
-    def __init__(self, data_dir, flatten_json):
-        self.flatten_json = flatten_json
+    def __init__(self, data_dir):
         self.data_dir = data_dir
         self.clip_dir = f"{data_dir}clips/"
 
-    def trim_around_action(self):
+    def trim_around_action(self, flatten_json):
         """
         Trims video to 8s clips containing action, under
         DATA_DIR/action_clips/{clip_id}_{start_frame}_{end_frame}.mp4
@@ -19,7 +18,7 @@ class Extractor():
         action_data_dir = f"{self.data_dir}action_clips/"
         os.makedirs(action_data_dir, exist_ok=True)
 
-        for info in tqdm(self.flatten_json, desc='Trimming clip near action'):
+        for info in tqdm(flatten_json, desc='Trimming clip near action'):
             start_frame = info["clip_start_frame"]
             end_frame = info["clip_end_frame"]
             video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
@@ -46,7 +45,7 @@ class Extractor():
             writer.release()
             video.release()
     
-    def extract_frame_as_image(self):
+    def extract_frame_as_image(self, flatten_json):
         """
         Saves all frames of 8s clips containing action as png image, under 
         DATA_DIR/frames/{clip_uid}/*.png
@@ -56,7 +55,7 @@ class Extractor():
         os.makedirs(frame_dir, exist_ok=True)
 
         frame_dict = {}
-        for info in tqdm(self.flatten_json, desc='Finding frames to extract'):
+        for info in tqdm(flatten_json, desc='Finding frames to extract'):
             frame_dict.setdefault(info["clip_uid"], set())
 
             start_frame = info["clip_start_frame"]

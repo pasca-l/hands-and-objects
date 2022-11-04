@@ -14,17 +14,18 @@ from video_extractor import Extractor
 
 def option_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', type=str, default="fho_hands",
+    parser.add_argument('-t', '--task', type=str, default="fho_hands",
                         choices=["fho_hands"])
-    parser.add_argument('--log_save_dir', type=str, default='./logs/')
-    parser.add_argument('--delete_log_dir', action='store_true')
-    parser.add_argument('--ann_dir', type=str,
-                        default='../../../data/ego4d/annotations/')
-    parser.add_argument('--data_dir', type=str, 
+    parser.add_argument('-d', '--data_dir', type=str, 
                         default='../../../data/ego4d/')
-    parser.add_argument('--model', type=str, default="cnnlstm",
+    parser.add_argument('-a', '--ann_dir', type=str,
+                        default='../../../data/ego4d/annotations/')
+    parser.add_argument('-m', '--model', type=str, default="cnnlstm",
                         choices=["cnnlstm", "slowfastperceiver", "bmn", 
                                  "i3d_resnet", "hand_salience"])
+    parser.add_argument('-l', '--log_save_dir', type=str, default='./logs/')
+    parser.add_argument('-r', '--delete_log_dir', action='store_true')
+    parser.add_argument('-e', '--extract_frame', action='store_true')
 
     return parser.parse_args()
 
@@ -42,6 +43,11 @@ def main():
         "val": json_handler(f"{json_partial_name}_val.json"),
         # "infer": json_handler(f"{json_partial_name}_test_unannotated.json")
     }
+
+    if args.extract_frame:
+        extractor = Extractor(args.data_dir)
+        for flatten_json in json_dict.values():
+            extractor.extract_frame_as_image(flatten_json)
 
     dataset = PNRTempLocDataModule(
         batch_size=4,
