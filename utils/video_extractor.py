@@ -69,8 +69,7 @@ class Extractor():
                       desc='Excluding existing frames to extract'):
             try:
                 frame_dict[d] -=\
-                    {int(f[:-4]) for f in os.listdir(
-                        f"{frame_dir}{d}")}
+                    {int(f[:-4]) for f in os.listdir(f"{frame_dir}{d}")}
             except KeyError:
                 continue
 
