@@ -6,7 +6,7 @@ from timesformer_pytorch import TimeSformer
 
 class System():
     def __init__(self):
-        self.model = TimeSformer()
+        self.model = Timesformer()
         self.loss = nn.CrossEntropyLoss()
         self.optimizer = optim.AdamW(
             self.model.parameters(),
@@ -16,7 +16,7 @@ class System():
         self.label_transform = IdentityTransform()
 
 
-class TimeSformer(nn.Module):
+class Timesformer(nn.Module):
     def __init__(self):
         super().__init__()
         self.timesformer = TimeSformer(
