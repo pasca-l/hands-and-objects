@@ -5,10 +5,6 @@ from tqdm import tqdm
 class JsonHandler():
     def __init__(self, ann_task_name):
         self.ann_task_name = ann_task_name
-        self.skip_clips = [
-            "73de9018-dc67-48ca-a0a1-5697f9f100cd",
-            "e964bb42-f596-4dca-96de-0940b52f0c75"
-        ]
 
     def __call__(self, json_file):
         """
@@ -30,9 +26,6 @@ class JsonHandler():
 
         json_data = json.load(open(json_file, 'r'))
         for data in tqdm(json_data['clips'], desc='Preparing data'):
-
-            if data['clip_uid'] in self.skip_clips:
-                continue
 
             for frame_data in data['frames']:
                 # pnr frame must be included in any of the batch.
