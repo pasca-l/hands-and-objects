@@ -17,9 +17,9 @@ def option_parser():
     parser.add_argument('-t', '--task', type=str, default="fho_hands",
                         choices=["fho_hands"])
     parser.add_argument('-d', '--data_dir', type=str, 
-                        default='../../../data/ego4d/')
+                        default='~/data/ego4d/')
     parser.add_argument('-a', '--ann_dir', type=str,
-                        default='../../../data/ego4d/annotations/')
+                        default='~/data/ego4d/annotations/')
     parser.add_argument('-m', '--model', type=str, default="cnnlstm",
                         choices=["cnnlstm", "slowfastperceiver", "bmn", 
                                  "i3d_resnet", "hand_salience"])
