@@ -17,12 +17,12 @@ def option_parser():
     parser.add_argument('-t', '--task', type=str, default="fho_hands",
                         choices=["fho_hands"])
     parser.add_argument('-d', '--data_dir', type=str, 
-                        default='~/data/ego4d/')
+                        default='/home/ubuntu/data/ego4d/')
     parser.add_argument('-a', '--ann_dir', type=str,
-                        default='~/data/ego4d/annotations/')
+                        default='/home/ubuntu/data/ego4d/annotations/')
     parser.add_argument('-m', '--model', type=str, default="cnnlstm",
                         choices=["cnnlstm", "slowfastperceiver", "bmn", 
-                                 "i3d_resnet", "hand_salience"])
+                                 "i3d_resnet", "hand_salience", "timesformer"])
     parser.add_argument('-l', '--log_save_dir', type=str, default='./logs/')
     parser.add_argument('-r', '--delete_log_dir', action='store_true')
     parser.add_argument('-e', '--extract_frame', action='store_true')
