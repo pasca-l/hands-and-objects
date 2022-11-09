@@ -50,7 +50,7 @@ def sample_video_frames(video_path, to_total_frames=32):
     video = cv2.VideoCapture(video_path)
     total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
     sample_rate = total_frames // to_total_frames
-    frame_nums = [i for i in range(total_frames) if i % sample_rate == 0]
+    frame_nums = [i for i in range(int(total_frames)) if i % sample_rate == 0]
 
     frames = []
     counter = 1
