@@ -16,7 +16,7 @@ class System():
             dampening=0,
             nesterov=False
         )
-        self.label_transform = IdentityTransform()
+        self.label_transform = lambda batch: batch[1]
 
 
 class SlowFastPreceiver(nn.Module):
@@ -97,11 +97,3 @@ class ResNetBasicHead(nn.Module):
         x = x.view(batch_size, -1)
 
         return x
-
-
-class IdentityTransform():
-    def __init__(self):
-        pass
-
-    def __call__(self, batch):
-        return batch[1]

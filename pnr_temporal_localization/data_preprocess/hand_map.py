@@ -2,6 +2,8 @@ import numpy as np
 import mediapipe as mp
 
 
+# can only be used on 1 GPU
+# set devices=[0] in Trainer
 class AddHandMapTransform():
     def __init__(self):
         self.image_mode = True

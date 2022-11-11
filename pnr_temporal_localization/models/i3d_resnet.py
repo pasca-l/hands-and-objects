@@ -1,4 +1,4 @@
-import torch, torch.fx
+import torch
 import torch.nn as nn
 import torch.optim as optim
 
@@ -12,7 +12,7 @@ class System():
             lr=1e-4,
             weight_decay=1e-4
         )
-        self.label_transform = IdentityTransform()
+        self.label_transform = lambda batch: batch[1]
 
 
 class I3DResNet(nn.Module):
@@ -41,11 +41,3 @@ class I3DResNet(nn.Module):
         x = x.view(batch_size, -1)
 
         return x
-
-
-class IdentityTransform():
-    def __init__(self):
-        pass
-
-    def __call__(self, batch):
-        return batch[1]
