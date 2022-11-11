@@ -13,16 +13,9 @@ class PNRTempLocDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.json_dict = json_dict
         self.batch_size = batch_size
-        self.model_name = model_name
 
-        if self.model_name == 'hand_salience':
-            module = importlib.import_module('data_preprocess.hand_map')
-            hand_saliency_map = module.AddHandMapTransform()
-            self.transform = transforms.Compose([
-                transforms.Lambda(hand_saliency_map),
-                transforms.ToTensor(),
-                transforms.Normalize([0.45],[0.225])
-            ])
+        preprocessor = PNRTempLocDataPreprocessor()
+        self.transform = preprocessor(model_name)
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
@@ -73,11 +66,8 @@ class PNRTempLocDataset(Dataset):
 
     def __getitem__(self, index):
         info = self.flatten_json[index]
-
         frames, labels = self._sample_clip_with_label(info)
         frames = self.transform(frames)
-        # frames = torch.as_tensor(frames, dtype=torch.float).permute(3,0,1,2)
-        # frames = transforms.functional.normalize(frames, [0.45], [0.225])
 
         return frames, labels, info
 
@@ -164,3 +154,39 @@ class PNRTempLocDataset(Dataset):
             frames.append(frame)
 
         return frames
+
+
+class PNRTempLocDataPreprocessor():
+    def __init__(self):
+        pass
+
+    def __call__(self, preprocess_name):
+        if preprocess_name == 'hand_salience':
+            return self._hand_map_transform()
+        else:
+            return self._simple_transform()
+
+    def _simple_transform(self):
+        transform = transforms.Compose([
+            transforms.Lambda(
+                lambda x: torch.as_tensor(x, dtype=torch.float)
+                            .permute(3,0,1,2)
+            ),
+            transforms.Normalize([0.45],[0.225])
+        ])
+
+        return transform
+
+    def _hand_map_transform(self):
+        module = importlib.import_module('data_preprocess.hand_map')
+        hand_saliency_map = module.AddHandMapTransform()
+        transform = transforms.Compose([
+            transforms.Lambda(hand_saliency_map),
+            transforms.Lambda(
+                lambda x: torch.as_tensor(x, dtype=torch.float)
+                            .permute(3,0,1,2)
+            ),
+            transforms.Normalize([0.45],[0.225])
+        ])
+
+        return transform
