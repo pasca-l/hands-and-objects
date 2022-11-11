@@ -41,7 +41,6 @@ def main():
     json_dict = {
         "train": json_handler(f"{json_partial_name}_train.json"),
         "val": json_handler(f"{json_partial_name}_val.json"),
-        # "infer": json_handler(f"{json_partial_name}_test_unannotated.json")
     }
 
     if args.extract_frame:
@@ -66,7 +65,7 @@ def main():
     )
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         save_top_k=1,
-        save_weights_only=True,
+        # save_weights_only=True,
         monitor="train_loss",
         mode='min',
         dirpath=args.log_save_dir,
@@ -81,7 +80,11 @@ def main():
         callbacks=[checkpoint_callback]
     )
 
-    trainer.fit(classifier, dataset)
+    trainer.fit(
+        classifier,
+        datamodule=dataset,
+        # ckpt_path=None
+    )
 
 
 if __name__ == '__main__':
