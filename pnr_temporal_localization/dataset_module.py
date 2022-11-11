@@ -50,8 +50,6 @@ class PNRTempLocDataset(Dataset):
         self.frame_dir = f"{data_dir}frames/"
         self.flatten_json = flatten_json
 
-        self.transform = FrameTransform()
-
     def __len__(self):
         return len(self.flatten_json)
 
@@ -59,8 +57,8 @@ class PNRTempLocDataset(Dataset):
         info = self.flatten_json[index]
 
         frames, labels = self._sample_clip_with_label(info)
-        frames = torch.as_tensor(frames, dtype=torch.float).permute(3, 0, 1, 2)
-        frames = self.transform(frames)
+        frames = torch.as_tensor(frames, dtype=torch.float).permute(3,0,1,2)
+        frames = transforms.functional.normalize(frames, [0.45], [0.225])
 
         return frames, labels, info
 
@@ -76,25 +74,15 @@ class PNRTempLocDataset(Dataset):
             self._sample_out_frames(
                 pnr_frame, random_start_frame, random_end_frame, 32)
 
-        # include values for metric
-        info["total_frame_num"] = random_end_frame - random_start_frame
-        info["fps"] = 30
-        # video_path = f"{self.clip_dir}{info['clip_uid']}.mp4"
-        # video = cv2.VideoCapture(video_path)
-        # info["fps"] = video.get(cv2.CAP_PROP_FPS)
-
         frames = self._load_frames(sample_frame_num, info)
 
         keyframe_idx = np.argmin(frame_pnr_dist)
         onehot_label = np.zeros(len(sample_frame_num))
         onehot_label[keyframe_idx] = 1
 
-        # fps = info["original_fps"]
-        # clipped_seconds = (random_end_frame - random_start_frame) / fps
-        # effective_fps = len(sample_frame_num) / clipped_seconds
-
-        # info["sample_frame_num"] = sample_frame_num
-        # info["effective_fps"] = effective_fps
+        # include values for metric
+        info["total_frame_num"] = random_end_frame - random_start_frame
+        info["fps"] = 30
 
         return (
             np.concatenate(frames),
@@ -157,13 +145,3 @@ class PNRTempLocDataset(Dataset):
             frames.append(frame)
 
         return frames
-
-
-class FrameTransform():
-    def __init__(self):
-        self.data_transform = transforms.Compose([
-            transforms.Normalize([0.45],[0.225])
-        ])
-
-    def __call__(self, frame):
-        return self.data_transform(frame)
