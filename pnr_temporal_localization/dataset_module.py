@@ -1,3 +1,4 @@
+import importlib
 import cv2
 import numpy as np
 import torch
@@ -7,18 +8,34 @@ import pytorch_lightning as pl
 
 
 class PNRTempLocDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size, data_dir, json_dict):
+    def __init__(self, batch_size, data_dir, json_dict, model_name):
         super().__init__()
         self.data_dir = data_dir
         self.json_dict = json_dict
         self.batch_size = batch_size
-    
+        self.model_name = model_name
+
+        if self.model_name == 'hand_salience':
+            module = importlib.import_module('data_preprocess.hand_map')
+            hand_saliency_map = module.AddHandMapTransform()
+            self.transform = transforms.Compose([
+                transforms.Lambda(hand_saliency_map),
+                transforms.ToTensor(),
+                transforms.Normalize([0.45],[0.225])
+            ])
+
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
-            self.train_data =\
-                PNRTempLocDataset(self.data_dir, self.json_dict['train'])
-            self.val_data =\
-                PNRTempLocDataset(self.data_dir, self.json_dict['val'])
+            self.train_data = PNRTempLocDataset(
+                data_dir=self.data_dir,
+                flatten_json=self.json_dict['train'],
+                transform=self.transform
+            )
+            self.val_data = PNRTempLocDataset(
+                data_dir=self.data_dir,
+                flatten_json=self.json_dict['val'],
+                transform=self.transform
+            )
 
         if stage == "test":
             self.test_data = None
@@ -45,10 +62,11 @@ class PNRTempLocDataModule(pl.LightningDataModule):
 
 
 class PNRTempLocDataset(Dataset):
-    def __init__(self, data_dir, flatten_json):
+    def __init__(self, data_dir, flatten_json, transform):
         self.clip_dir = f"{data_dir}clips/"
         self.frame_dir = f"{data_dir}frames/"
         self.flatten_json = flatten_json
+        self.transform = transform
 
     def __len__(self):
         return len(self.flatten_json)
@@ -57,8 +75,9 @@ class PNRTempLocDataset(Dataset):
         info = self.flatten_json[index]
 
         frames, labels = self._sample_clip_with_label(info)
-        frames = torch.as_tensor(frames, dtype=torch.float).permute(3,0,1,2)
-        frames = transforms.functional.normalize(frames, [0.45], [0.225])
+        frames = self.transform(frames)
+        # frames = torch.as_tensor(frames, dtype=torch.float).permute(3,0,1,2)
+        # frames = transforms.functional.normalize(frames, [0.45], [0.225])
 
         return frames, labels, info
 
