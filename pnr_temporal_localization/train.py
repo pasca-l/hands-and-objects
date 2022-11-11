@@ -51,7 +51,8 @@ def main():
     dataset = PNRTempLocDataModule(
         batch_size=4,
         data_dir=args.data_dir,
-        json_dict=json_dict
+        json_dict=json_dict,
+        model_name=args.model
     )
 
     module = importlib.import_module(f'models.{args.model}')
