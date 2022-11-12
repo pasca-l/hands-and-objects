@@ -56,7 +56,6 @@ class PNRTempLocDataModule(pl.LightningDataModule):
 
 class PNRTempLocDataset(Dataset):
     def __init__(self, data_dir, flatten_json, transform):
-        self.clip_dir = f"{data_dir}clips/"
         self.frame_dir = f"{data_dir}frames/"
         self.flatten_json = flatten_json
         self.transform = transform
