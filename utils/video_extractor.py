@@ -5,7 +5,8 @@ from tqdm import tqdm
 
 
 class Extractor():
-    def __init__(self, data_dir):
+    def __init__(self, ann_task_name, data_dir):
+        self.ann_task_name = ann_task_name
         self.data_dir = data_dir
         self.clip_dir = f"{data_dir}clips/"
 
@@ -58,10 +59,23 @@ class Extractor():
         for info in tqdm(flatten_json, desc='Finding frames to extract'):
             frame_dict.setdefault(info["clip_uid"], set())
 
-            start_frame = info["clip_start_frame"]
-            end_frame = info["clip_end_frame"]
-            frame_dict[info["clip_uid"]] |=\
-                {i for i in range(start_frame, end_frame + 1)}
+            # different extraction for tasks
+            if self.ann_task_name == 'fho_hands':
+                start_frame = info["clip_start_frame"]
+                end_frame = info["clip_end_frame"]
+                frame_dict[info["clip_uid"]] |=\
+                    {i for i in range(start_frame, end_frame + 1)}
+
+            elif self.ann_task_name == 'fho_scod':
+                frame_dict[info["clip_uid"]] |=\
+                    {
+                        info["pre_frame_num_clip"],
+                        info["pnr_frame_num_clip"],
+                        info["post_frame_num_clip"]
+                    }
+
+            else:
+                raise Exception
 
         existing_frame_dirs = [d for d in os.listdir(frame_dir)
                                if os.path.isdir(f"{frame_dir}{d}")]

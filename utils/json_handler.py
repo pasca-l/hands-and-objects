@@ -37,13 +37,13 @@ class JsonHandler():
                 json_dict = {
                     "clip_id": data['clip_id'],
                     "clip_uid": data['clip_uid'],
-                    "video_uid": data['video_uid'],
-                    "video_start_sec": frame_data['action_start_sec'],
-                    "video_end_sec": frame_data['action_end_sec'],
-                    "video_start_frame": frame_data['action_start_frame'],
-                    "video_end_frame": frame_data['action_end_frame'],
-                    "clip_start_sec": frame_data['action_clip_start_sec'],
-                    "clip_end_sec": frame_data['action_clip_end_sec'],
+                    # "video_uid": data['video_uid'],
+                    # "video_start_sec": frame_data['action_start_sec'],
+                    # "video_end_sec": frame_data['action_end_sec'],
+                    # "video_start_frame": frame_data['action_start_frame'],
+                    # "video_end_frame": frame_data['action_end_frame'],
+                    # "clip_start_sec": frame_data['action_clip_start_sec'],
+                    # "clip_end_sec": frame_data['action_clip_end_sec'],
                     "clip_start_frame": frame_data['action_clip_start_frame'],
                     "clip_end_frame": frame_data['action_clip_end_frame'],
                     "clip_pnr_frame": frame_data['pnr_frame']['clip_frame']
@@ -112,9 +112,9 @@ class JsonHandler():
             json_dict = {
                 "clip_id": data['clip_id'],
                 "clip_uid": data['clip_uid'],
-                "video_uid": data['video_uid'],
-                "clip_start_sec": data['clip_parent_start_sec'],
-                "clip_end_sec": data['clip_parent_end_sec'],
+                # "video_uid": data['video_uid'],
+                # "clip_start_sec": data['clip_parent_start_sec'],
+                # "clip_end_sec": data['clip_parent_end_sec'],
                 "clip_start_frame": data['clip_parent_start_frame'],
                 "clip_end_frame": data['clip_parent_end_frame'],
             }
@@ -122,7 +122,7 @@ class JsonHandler():
             for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
                 frame_data = data[frame_type]
                 frame_dict = {
-                    f"{frame_type}_num": frame_data['frame_number'],
+                    # f"{frame_type}_num": frame_data['frame_number'],
                     f"{frame_type}_num_clip": frame_data['clip_frame_number'],
                     f"{frame_type}_width": frame_data['width'],
                     f"{frame_type}_height": frame_data['height'],
@@ -132,8 +132,9 @@ class JsonHandler():
                 for obj in frame_data['bbox']:
                     object_dict = {
                         "object_type": obj['object_type'],
-                        "structured_noun": obj['structured_noun'],
-                        "instance_num": obj['instance_number'],
+                        "structured_noun": obj['structured_noun'] \
+                                        if obj['structured_noun'] else '',
+                        # "instance_num": obj['instance_number'],
                         "bbox_x": obj['bbox']['x'],
                         "bbox_y": obj['bbox']['y'],
                         "bbox_width": obj['bbox']['width'],
