@@ -46,10 +46,10 @@ class Extractor():
             writer.release()
             video.release()
     
-    def extract_frame_as_image(self, flatten_json):
+    def extract_frame_as_image(self, flatten_json, resize=True):
         """
         Saves all frames of 8s clips containing action as png image, under 
-        DATA_DIR/frames/{clip_uid}/*.png
+        DATA_DIR/frames/{clip_uid}/*.jpg
         """
 
         frame_dir = f"{self.data_dir}frames/"
@@ -104,7 +104,9 @@ class Extractor():
                 if ret == False:
                     break
                 if counter in frame_nums:
-                    frame_save_path = f"{frame_save_dir}{counter}.png"
+                    if resize:
+                        frame = cv2.resize(frame, (224,224))
+                    frame_save_path = f"{frame_save_dir}{counter}.jpg"
                     cv2.imwrite(frame_save_path, frame)
                 counter += 1
 
