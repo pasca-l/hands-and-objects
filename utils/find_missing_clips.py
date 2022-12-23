@@ -4,6 +4,10 @@ from json_handler import JsonHandler
 
 
 def main():
+    """
+    Outputs video paths required by annotation file, which does not exist in the data folder of video files.
+    """
+
     ann_dir = '/home/ubuntu/data/ego4d/annotations/'
     task_name = 'fho_hands'
 
