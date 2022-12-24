@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 
 
-class StateChgObjDetector(pl.LightningModule):
+class ObjnessClassifier(pl.LightningModule):
     def __init__(self, sys):
         super().__init__()
         self.model = sys.model

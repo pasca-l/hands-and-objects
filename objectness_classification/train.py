@@ -5,11 +5,12 @@ import importlib
 import pytorch_lightning as pl
 
 from dataset_module import ObjnessClsDataModule
-# from system import StateChgObjDetector
+from system import ObjnessClassifier
 
 sys.path.append("../utils")
 from json_handler import JsonHandler
 from video_extractor import Extractor
+from check_dataset import DatasetChecker
 
 
 def option_parser():
@@ -17,9 +18,9 @@ def option_parser():
     parser.add_argument('-t', '--task', type=str, default="fho_scod",
                         choices=["fho_scod"])
     parser.add_argument('-d', '--data_dir', type=str, 
-                        default='/home/ubuntu/data/ego4d/')
-    parser.add_argument('-m', '--model', type=str, default="faster_rcnn",
-                        choices=["faster_rcnn"])
+                        default='/home/aolab/data/ego4d/')
+    parser.add_argument('-m', '--model', type=str, default="unet",
+                        choices=["unet"])
     parser.add_argument('-l', '--log_save_dir', type=str, default='./logs/')
     parser.add_argument('-r', '--delete_log_dir', action='store_true')
     parser.add_argument('-e', '--extract_frame', action='store_true')
@@ -53,17 +54,17 @@ def main():
         label_mode='corners'    # 'corners' or 'COCO'
     )
 
-    dataset.setup()
-    data = iter(dataset.train_dataloader()).next()
-    return
+    # checker = DatasetChecker(dataset)
+    # checker()
 
     module = importlib.import_module(f'models.{args.model}')
     system = module.System()
-    detector = StateChgObjDetector(
+    classifier = ObjnessClassifier(
         sys=system
     )
 
-    print(detector(data[0][0]))
+    print(classifier.model)
+    # print(detector(data[0][0]))
     return
 
     logger = pl.loggers.TensorBoardLogger(
@@ -87,7 +88,7 @@ def main():
     )
 
     trainer.fit(
-        detector,
+        classifier,
         datamodule=dataset,
         # ckpt_path=None
     )

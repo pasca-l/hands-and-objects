@@ -7,6 +7,18 @@ import pytorch_lightning as pl
 
 
 class ObjnessClsDataModule(pl.LightningDataModule):
+    """
+    Fetches total of 3 frames per state change: pre, pnr, and post frames.
+    Labels are given by a mask of background (0), and foreground (1).
+
+    Returns:
+        [
+            frames: [batch, frame_num, height, width, channel],
+            labels: [batch, frame_num, height, width, channel],
+            info: dict of additional information (optional)
+        ]
+    """
+
     def __init__(self, data_dir, json_dict, model_name, batch_size, label_mode):
         super().__init__()
         self.data_dir = data_dir
@@ -37,7 +49,7 @@ class ObjnessClsDataModule(pl.LightningDataModule):
 
         if stage == "predict":
             self.predict_data = None
-    
+
     def train_dataloader(self):
         return DataLoader(
             self.train_data,
@@ -58,6 +70,7 @@ class ObjnessClsDataModule(pl.LightningDataModule):
 
 class StateChgObjDataset(Dataset):
     def __init__(self, data_dir, flatten_json, transform, label_mode):
+        super().__init__()
         self.frame_dir = data_dir
         self.flatten_json = flatten_json
         self.transform = transform
@@ -72,30 +85,30 @@ class StateChgObjDataset(Dataset):
         frames = self._get_frames(info)
         frames = self.transform(frames)
 
-        return frames, labels, info
+        return frames, labels
 
     def _get_frames(self, info):
         frames = []
         for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
             frame_path = f"{self.frame_dir}{info['clip_uid']}/" +\
-                         f"{info[f'{frame_type}_num_clip']}.png"
+                         f"{info[f'{frame_type}_num_clip']}.jpg"
             try:
                 frame = cv2.imread(frame_path)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame = cv2.resize(frame, (224, 224))
-                image = np.expand_dims(frame, axis=0).astype(np.float32)
             except:
                 print(f"Image does not exist : {frame_path}")
                 return
 
-            frames.append(image)
+            frames.append(frame)
 
-        return np.concatenate(frames)
+        return np.array(frames)
 
     def _get_labels(self, info):
         objs = {
+            "frame_type": [],
             "labels": [],
-            "boxes": []
+            "points": []
         }
         obj_cls_dict = {
             "left_hand": 0,
@@ -104,32 +117,61 @@ class StateChgObjDataset(Dataset):
             "tool": 3,
         }
 
-        # 前景背景のマップを返すようにする
-        return
+        for i, frame in enumerate(['pre_frame', 'pnr_frame', 'post_frame']):
+            for objects in info[f"{frame}_objects"]:
+                objs["frame_type"].append(i)
 
-        # for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
-        #     for objects in info[f"{frame_type}_objects"]:
-        #         if self.label_mode == 'corners':
-        #             bbox_x1 = objects["bbox_x"]
-        #             bbox_x2 = bbox_x1 + objects["bbox_width"]
-        #             bbox_y1 = objects["bbox_y"]
-        #             bbox_y2 = bbox_y1 + objects["bbox_height"]
-        #             objs["boxes"].append([bbox_x1, bbox_y1, bbox_x2, bbox_y2])
+                bbox_cls = obj_cls_dict[objects["object_type"]]
+                objs["labels"].append(bbox_cls)
 
-        #         elif self.label_mode == 'COCO':
-        #             bbox_cx = objects["bbox_x"] + objects["bbox_width"] / 2
-        #             bbox_cy = objects["bbox_y"] + objects["bbox_height"] / 2
-        #             bbox_w = objects["bbox_width"]
-        #             bbox_h = objects["bbox_height"]
-        #             objs["boxes"].append([bbox_cx, bbox_cy, bbox_w, bbox_h])
+                if self.label_mode == 'corners':
+                    bbox_x1 = objects["bbox_x"]
+                    bbox_x2 = bbox_x1 + objects["bbox_width"]
+                    bbox_y1 = objects["bbox_y"]
+                    bbox_y2 = bbox_y1 + objects["bbox_height"]
+                    objs["points"].append([
+                        (bbox_x1, bbox_y1), (bbox_x1, bbox_y2),
+                        (bbox_x2, bbox_y2), (bbox_x2, bbox_y1)
+                    ])
 
-        #         bbox_cls = obj_cls_dict[objects["object_type"]]
-        #         objs["labels"].append(bbox_cls)
+                elif self.label_mode == 'COCO':
+                    bbox_cx = objects["bbox_x"] + objects["bbox_width"] / 2
+                    bbox_cy = objects["bbox_y"] + objects["bbox_height"] / 2
+                    bbox_w = objects["bbox_width"]
+                    bbox_h = objects["bbox_height"]
+                    objs["points"].append([
+                        (bbox_cx - bbox_w, bbox_cy - bbox_h),
+                        (bbox_cx + bbox_w, bbox_cy - bbox_h),
+                        (bbox_cx - bbox_w, bbox_cy + bbox_h),
+                        (bbox_cx + bbox_w, bbox_cy + bbox_h)
+                    ])
 
-        # objs["labels"] = np.array(objs["labels"])
-        # objs["boxes"] = np.array(objs["boxes"])
+        objs["frame_type"] = np.array(objs["frame_type"])
+        objs["labels"] = np.array(objs["labels"])
+        objs["points"] = np.array(objs["points"])
 
-        # return objs
+        mask = self._create_mask(info['clip_uid'], objs, 2)
+        return mask
+
+    def _create_mask(self, clip_uid, objs, label=2):
+        frame_path = f"{self.frame_dir}{clip_uid}/sample.jpg"
+        frame = cv2.imread(frame_path)
+        height, width, _ = frame.shape
+
+        masks = []
+        for frame_type in range(3):
+            mask = np.zeros((height, width))
+            point_idx = np.where(
+                (objs["labels"] == label) & (objs["frame_type"] == frame_type)
+            )
+            points = objs["points"][point_idx]
+
+            mask = cv2.fillPoly(mask, np.int32(points), 1)
+            mask = cv2.resize(mask, (224, 224))
+
+            masks.append(mask)
+
+        return np.array(masks)
 
 
 class ObjnessClsDataPreprocessor():
@@ -143,7 +185,6 @@ class ObjnessClsDataPreprocessor():
         transform = transforms.Compose([
             transforms.Lambda(
                 lambda x: torch.as_tensor(x, dtype=torch.float)
-                            .permute(3,0,1,2)
             ),
             transforms.Normalize([0.45],[0.225])
         ])

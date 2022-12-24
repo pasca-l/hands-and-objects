@@ -13,7 +13,7 @@ class Extractor():
     def trim_around_action(self, flatten_json):
         """
         Trims video to 8s clips containing action, under
-        DATA_DIR/action_clips/{clip_id}_{start_frame}_{end_frame}.mp4
+        "DATA_DIR/action_clips/{clip_id}_{start_frame}_{end_frame}.mp4".
         """
 
         action_data_dir = f"{self.data_dir}action_clips/"
@@ -48,8 +48,9 @@ class Extractor():
     
     def extract_frame_as_image(self, flatten_json, resize=True):
         """
-        Saves all frames of 8s clips containing action as png image, under 
-        DATA_DIR/frames/{clip_uid}/*.jpg
+        Saves necessary frames of clips containing action as png image, under 
+        "DATA_DIR/frames/{clip_uid}/*.jpg".
+        Also, saves first original frame as "sample.jpg".
         """
 
         frame_dir = f"{self.data_dir}frames/"
@@ -103,11 +104,18 @@ class Extractor():
                 ret, frame = video.read()
                 if ret == False:
                     break
+
+                # saves original first frame as sample
+                if counter == 1:
+                    frame_save_path = f"{frame_save_dir}sample.jpg"
+                    cv2.imwrite(frame_save_path, frame)
+
                 if counter in frame_nums:
                     if resize:
                         frame = cv2.resize(frame, (224,224))
                     frame_save_path = f"{frame_save_dir}{counter}.jpg"
                     cv2.imwrite(frame_save_path, frame)
+
                 counter += 1
 
             video.release()
