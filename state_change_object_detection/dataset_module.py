@@ -7,15 +7,34 @@ import pytorch_lightning as pl
 
 
 class StateChgObjDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size, data_dir, json_dict, model_name, label_mode):
+    """
+    Fetches total of 3 frames per state change: pre, pnr, and post frames. Labels are given by a object bounding box information.
+
+    Returns:
+        [
+            frames: [batch, frame_num, height, width, channel],
+            labels: {
+                "mask": ['pre_frame': 0, 'pnr_frame': 1, 'post_frame': 2],
+                "labels": [
+                    "left_hand": 0, "right_hand": 1,
+                    "object_of_change": 2, "tool": 3
+                ],
+                "boxes": [x1, x2, y1, y2] (corners) or
+                         [cx, cy, w, h] (COCO)
+            },
+            info: dict of additional information (optional)
+        ]
+    """
+
+    def __init__(self, data_dir, json_dict, model_name, batch_size, label_mode):
         super().__init__()
         self.data_dir = data_dir
         self.json_dict = json_dict
         self.batch_size = batch_size
         self.label_mode = label_mode
 
-        preprocessor = StateChgObjDataPreprocessor()
-        self.transform = preprocessor(model_name)
+        preprocessor = StateChgObjDataPreprocessor(model_name)
+        self.transform = preprocessor()
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
@@ -37,14 +56,19 @@ class StateChgObjDataModule(pl.LightningDataModule):
 
         if stage == "predict":
             self.predict_data = None
-    
+
+    def collate_fn(self, batch):
+        frames, labels = zip(*batch)
+        return torch.stack(frames, dim=0), labels
+
     def train_dataloader(self):
         return DataLoader(
             self.train_data,
             batch_size=self.batch_size,
             num_workers=8,
             pin_memory=True,
-            shuffle=True
+            shuffle=True,
+            collate_fn=self.collate_fn
         )
 
     def val_dataloader(self):
@@ -52,13 +76,14 @@ class StateChgObjDataModule(pl.LightningDataModule):
             self.val_data,
             batch_size=self.batch_size,
             num_workers=8,
-            pin_memory=True
+            pin_memory=True,
+            collate_fn=self.collate_fn
         )
 
 
 class StateChgObjDataset(Dataset):
     def __init__(self, data_dir, flatten_json, transform, label_mode):
-        self.frame_dir = f"{data_dir}frames/"
+        self.frame_dir = data_dir
         self.flatten_json = flatten_json
         self.transform = transform
         self.label_mode = label_mode
@@ -72,7 +97,7 @@ class StateChgObjDataset(Dataset):
         frames = self._get_frames(info)
         frames = self.transform(frames)
 
-        return frames, labels, info
+        return frames, labels
 
     def _get_frames(self, info):
         frames = []
@@ -94,6 +119,7 @@ class StateChgObjDataset(Dataset):
 
     def _get_labels(self, info):
         objs = {
+            "frame_type": [],
             "labels": [],
             "boxes": []
         }
@@ -104,8 +130,13 @@ class StateChgObjDataset(Dataset):
             "tool": 3,
         }
 
-        for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
-            for objects in info[f"{frame_type}_objects"]:
+        for i, frame in enumerate(['pre_frame', 'pnr_frame', 'post_frame']):
+            for objects in info[f"{frame}_objects"]:
+                objs["frame_type"].append(i)
+
+                bbox_cls = obj_cls_dict[objects["object_type"]]
+                objs["labels"].append(bbox_cls)
+
                 if self.label_mode == 'corners':
                     bbox_x1 = objects["bbox_x"]
                     bbox_x2 = bbox_x1 + objects["bbox_width"]
@@ -120,9 +151,7 @@ class StateChgObjDataset(Dataset):
                     bbox_h = objects["bbox_height"]
                     objs["boxes"].append([bbox_cx, bbox_cy, bbox_w, bbox_h])
 
-                bbox_cls = obj_cls_dict[objects["object_type"]]
-                objs["labels"].append(bbox_cls)
-
+        objs["frame_type"] = np.array(objs["frame_type"])
         objs["labels"] = np.array(objs["labels"])
         objs["boxes"] = np.array(objs["boxes"])
 
@@ -130,17 +159,16 @@ class StateChgObjDataset(Dataset):
 
 
 class StateChgObjDataPreprocessor():
-    def __init__(self):
-        pass
+    def __init__(self, model_name):
+        self.model_name = model_name
 
-    def __call__(self, preprocess_name):
+    def __call__(self):
         return self._simple_transform()
 
     def _simple_transform(self):
         transform = transforms.Compose([
             transforms.Lambda(
                 lambda x: torch.as_tensor(x, dtype=torch.float)
-                            .permute(3,0,1,2)
             ),
             transforms.Normalize([0.45],[0.225])
         ])

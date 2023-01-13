@@ -18,8 +18,6 @@ def option_parser():
                         choices=["fho_scod"])
     parser.add_argument('-d', '--data_dir', type=str, 
                         default='/home/ubuntu/data/ego4d/')
-    parser.add_argument('-a', '--ann_dir', type=str,
-                        default='/home/ubuntu/data/ego4d/annotations/')
     parser.add_argument('-m', '--model', type=str, default="faster_rcnn",
                         choices=["faster_rcnn"])
     parser.add_argument('-l', '--log_save_dir', type=str, default='./logs/')
@@ -36,7 +34,7 @@ def main():
         shutil.rmtree(args.log_save_dir)
 
     json_handler = JsonHandler(args.task)
-    json_partial_name = f"{args.ann_dir}{args.task}"
+    json_partial_name = f"{args.data_dir}annotations/{args.task}"
     json_dict = {
         "train": json_handler(f"{json_partial_name}_train.json"),
         "val": json_handler(f"{json_partial_name}_val.json"),
@@ -48,10 +46,10 @@ def main():
             extractor.extract_frame_as_image(flatten_json)
 
     dataset = StateChgObjDataModule(
-        batch_size=1,
-        data_dir=args.data_dir,
+        data_dir=f"{args.data_dir}frames/",
         json_dict=json_dict,
         model_name=args.model,
+        batch_size=1,
         label_mode='corners'    # 'corners' or 'COCO'
     )
 
