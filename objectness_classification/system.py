@@ -1,4 +1,5 @@
 import pytorch_lightning as pl
+from torchmetrics.classification import BinaryJaccardIndex
 
 
 class ObjnessClassifier(pl.LightningModule):
@@ -7,11 +8,9 @@ class ObjnessClassifier(pl.LightningModule):
         self.model = sys.model
         self.loss = sys.loss
         self.optimizer = sys.optimizer
-        self.label_function = sys.label_transform
 
     def training_step(self, batch, batch_idx):
-        frames = batch[0]
-        label = self.label_function(batch)
+        frames, label = batch[0], batch[1]
         logits = self.model(frames)
         loss = self.loss(logits, label)
 
@@ -19,12 +18,13 @@ class ObjnessClassifier(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        frames = batch[0]
-        label = self.label_function(batch)
+        frames, label = batch[0], batch[1]
         logits = self.model(frames)
         loss = self.loss(logits, label)
 
+        # metric = BinaryJaccardIndex()
         self.log("val_loss", loss, on_step=False, on_epoch=True)
+        # self.log("iou", metric(logits, label[:,1:2,:,:]), on_step=True)
 
     def configure_optimizers(self):
         return self.optimizer

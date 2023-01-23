@@ -4,13 +4,15 @@ import shutil
 import importlib
 import pytorch_lightning as pl
 
-from dataset_module import ObjnessClsDataModule
+sys.path.append("./datasets")
+from datasets.datamodule import ObjnessClsDataModule
+from datasets.transform import ObjnessClsDataPreprocessor
 from system import ObjnessClassifier
 
 sys.path.append("../utils")
 from json_handler import JsonHandler
 from video_extractor import Extractor
-from check_dataset import DatasetChecker
+from checker import Checker
 
 
 def option_parser():
@@ -34,28 +36,22 @@ def main():
     if args.delete_log_dir:
         shutil.rmtree(args.log_save_dir)
 
-    json_handler = JsonHandler(args.task)
-    json_partial_name = f"{args.data_dir}annotations/{args.task}"
-    json_dict = {
-        "train": json_handler(f"{json_partial_name}_train.json"),
-        "val": json_handler(f"{json_partial_name}_val.json"),
-    }
+    json_handler = JsonHandler(args.data_dir, args.task)
+    json_dict = json_handler()
 
     if args.extract_frame:
         extractor = Extractor(args.task, args.data_dir)
         for flatten_json in json_dict.values():
             extractor.extract_frame_as_image(flatten_json)
 
+    transform = ObjnessClsDataPreprocessor(args.model)
     dataset = ObjnessClsDataModule(
         data_dir=f"{args.data_dir}frames/",
         json_dict=json_dict,
-        model_name=args.model,
-        batch_size=1,
-        label_mode='corners'    # 'corners' or 'COCO'
+        transform=transform(),
+        batch_size=4,
+        label_mode='corners',
     )
-
-    # checker = DatasetChecker(dataset)
-    # checker()
 
     module = importlib.import_module(f'models.{args.model}')
     system = module.System()
@@ -63,8 +59,18 @@ def main():
         sys=system
     )
 
-    print(classifier.model)
-    # print(detector(data[0][0]))
+    checker = Checker(
+        ObjnessClsDataModule(
+            data_dir=f"{args.data_dir}frames/",
+            json_dict=json_dict,
+            transform=None,
+            batch_size=1,
+            label_mode='corners',
+            with_info=True
+        ),
+        system.model,
+    )
+    checker.check_dataset()
     return
 
     logger = pl.loggers.TensorBoardLogger(

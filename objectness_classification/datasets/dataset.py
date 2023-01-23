@@ -1,80 +1,24 @@
 import cv2
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-import pytorch_lightning as pl
+from torch.utils.data import Dataset
 
 
-class ObjnessClsDataModule(pl.LightningDataModule):
-    """
-    Fetches total of 3 frames per state change: pre, pnr, and post frames.
-    Labels are given by a mask of background (0), and foreground (1).
-
-    Returns:
-        [
-            frames: [batch, frame_num, height, width, channel],
-            labels: [batch, frame_num, height, width, channel],
-            info: dict of additional information (optional)
-        ]
-    """
-
-    def __init__(self, data_dir, json_dict, model_name, batch_size, label_mode):
-        super().__init__()
-        self.data_dir = data_dir
-        self.json_dict = json_dict
-        self.batch_size = batch_size
-        self.label_mode = label_mode
-
-        preprocessor = ObjnessClsDataPreprocessor(model_name)
-        self.transform = preprocessor()
-
-    def setup(self, stage=None):
-        if stage == "fit" or stage is None:
-            self.train_data = StateChgObjDataset(
-                data_dir=self.data_dir,
-                flatten_json=self.json_dict['train'],
-                transform=self.transform,
-                label_mode=self.label_mode
-            )
-            self.val_data = StateChgObjDataset(
-                data_dir=self.data_dir,
-                flatten_json=self.json_dict['val'],
-                transform=self.transform,
-                label_mode=self.label_mode
-            )
-
-        if stage == "test":
-            self.test_data = None
-
-        if stage == "predict":
-            self.predict_data = None
-
-    def train_dataloader(self):
-        return DataLoader(
-            self.train_data,
-            batch_size=self.batch_size,
-            num_workers=8,
-            pin_memory=True,
-            shuffle=True
-        )
-
-    def val_dataloader(self):
-        return DataLoader(
-            self.val_data,
-            batch_size=self.batch_size,
-            num_workers=8,
-            pin_memory=True
-        )
-
-
-class StateChgObjDataset(Dataset):
-    def __init__(self, data_dir, flatten_json, transform, label_mode):
+class ObjnessClsDataset(Dataset):
+    def __init__(
+        self,
+        data_dir,
+        flatten_json,
+        transform,
+        label_mode,
+        with_info,
+    ):
         super().__init__()
         self.frame_dir = data_dir
         self.flatten_json = flatten_json
         self.transform = transform
         self.label_mode = label_mode
+        self.with_info = with_info
 
     def __len__(self):
         return len(self.flatten_json)
@@ -83,7 +27,12 @@ class StateChgObjDataset(Dataset):
         info = self.flatten_json[index]
         labels = self._get_labels(info)
         frames = self._get_frames(info)
-        frames = self.transform(frames)
+
+        if self.transform != None:
+            frames = self.transform(frames)
+
+        if self.with_info:
+            return frames, labels, info
 
         return frames, labels
 
@@ -172,21 +121,3 @@ class StateChgObjDataset(Dataset):
             masks.append(mask)
 
         return np.array(masks)
-
-
-class ObjnessClsDataPreprocessor():
-    def __init__(self, model_name):
-        self.model_name = model_name
-
-    def __call__(self):
-        return self._simple_transform()
-
-    def _simple_transform(self):
-        transform = transforms.Compose([
-            transforms.Lambda(
-                lambda x: torch.as_tensor(x, dtype=torch.float)
-            ),
-            transforms.Normalize([0.45],[0.225])
-        ])
-
-        return transform
