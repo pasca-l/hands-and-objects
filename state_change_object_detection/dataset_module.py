@@ -103,19 +103,18 @@ class StateChgObjDataset(Dataset):
         frames = []
         for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
             frame_path = f"{self.frame_dir}{info['clip_uid']}/" +\
-                         f"{info[f'{frame_type}_num_clip']}.png"
+                         f"{info[f'{frame_type}_num_clip']}.jpg"
             try:
                 frame = cv2.imread(frame_path)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame = cv2.resize(frame, (224, 224))
-                image = np.expand_dims(frame, axis=0).astype(np.float32)
             except:
                 print(f"Image does not exist : {frame_path}")
                 return
 
-            frames.append(image)
+            frames.append(frame)
 
-        return np.concatenate(frames)
+        return np.array(frames)
 
     def _get_labels(self, info):
         objs = {
@@ -170,7 +169,7 @@ class StateChgObjDataPreprocessor():
             transforms.Lambda(
                 lambda x: torch.as_tensor(x, dtype=torch.float)
             ),
-            transforms.Normalize([0.45],[0.225])
+            # transforms.Normalize([0.45],[0.225])
         ])
 
         return transform

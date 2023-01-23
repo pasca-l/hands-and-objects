@@ -54,7 +54,9 @@ def main():
     )
 
     dataset.setup()
-    data = iter(dataset.train_dataloader()).next()
+    data = next(iter(dataset.train_dataloader()))
+
+    print(data)
 
     module = importlib.import_module(f'models.{args.model}')
     system = module.System()
