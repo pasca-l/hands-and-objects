@@ -10,21 +10,32 @@ def main():
     Visualizes middle layer weights using GradCAM.
     """
 
-    image_path = "../test_data/test.jpg"
+    image_path = "../objectness_classification/test_img/3dead068-318a-49c5-8036-e176e50cbf50/pnr_503.jpg"
 
     image = cv2.imread(image_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, (224,224))
 
-    model = models.resnet101(weights='DEFAULT').eval()
+    model = models.resnet101(weights='DEFAULT')
     # rcnn = models.detection.fasterrcnn_resnet50_fpn()
+    param_path = "../objectness_classification/logs/unet.ckpt"
+    param = torch.load(param_path)["state_dict"]
+    new_param = {}
+
+    for k in param.keys():
+        if "model.unet.encoder" in k:
+            new_param[k[19:]] = param[k]
+
+    model.load_state_dict(new_param, strict=False)
+    model.eval()
     cam_extractor = GradCAM(model)
 
     img = torch.from_numpy(image.astype(np.float32)).clone()
     img = img.unsqueeze(0).permute(0,3,1,2)
 
     out = model(img)
-    class_idx = 294
+    class_idx = out.squeeze(0).argmax().item()
+    print(out.squeeze(0).argmax().item())
     cams = cam_extractor(class_idx, out)
 
     for i, cam in enumerate(cams):
@@ -39,7 +50,7 @@ def main():
 
         heatmap = cv2.applyColorMap(map, cv2.COLORMAP_JET)
         output = heatmap * 0.5 + image * 0.5
-        cv2.imwrite(f"../test_data/heatmap{i}.png", output)
+        cv2.imwrite(f"./heatmap{i}.jpg", output)
 
 
 if __name__ == '__main__':

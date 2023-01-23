@@ -38,9 +38,9 @@ class Extractor():
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             writer = cv2.VideoWriter(video_save_path, fourcc, fps, v_size)
 
-            for i in range(end_frame + 1):
+            for counter in range(end_frame + 1):
                 ret, frame = video.read()
-                if ret == True and start_frame <= i:
+                if ret == True and start_frame <= counter:
                     writer.write(frame)
 
             writer.release()
@@ -80,16 +80,22 @@ class Extractor():
 
         existing_frame_dirs = [d for d in os.listdir(frame_dir)
                                if os.path.isdir(f"{frame_dir}{d}")]
-        for d in tqdm(existing_frame_dirs,
-                      desc='Excluding existing frames to extract'):
+
+        for d in tqdm(
+            existing_frame_dirs,
+            desc='Excluding existing frames to extract'
+        ):
             try:
                 frame_dict[d] -=\
-                    {int(f[:-4]) for f in os.listdir(f"{frame_dir}{d}")}
+                    {int(f[:-4]) for f in os.listdir(f"{frame_dir}{d}")
+                     if int(f[:-4] != "sample")}
             except KeyError:
                 continue
 
-        for clip_id, frame_nums in tqdm(frame_dict.items(),
-                                        desc='Extracting frames'):
+        for clip_id, frame_nums in tqdm(
+            frame_dict.items(),
+            desc='Extracting frames'
+        ):
             if len(frame_nums) == 0:
                 continue
 
@@ -99,8 +105,7 @@ class Extractor():
             video_path = f"{self.clip_dir}{clip_id}.mp4"
             video = cv2.VideoCapture(video_path)
 
-            counter = 1
-            while True:
+            for counter in range(1, int(video.get(cv2.CAP_PROP_FRAME_COUNT))+1):
                 ret, frame = video.read()
                 if ret == False:
                     break
@@ -115,7 +120,5 @@ class Extractor():
                         frame = cv2.resize(frame, (224,224))
                     frame_save_path = f"{frame_save_dir}{counter}.jpg"
                     cv2.imwrite(frame_save_path, frame)
-
-                counter += 1
 
             video.release()

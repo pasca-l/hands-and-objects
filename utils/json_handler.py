@@ -1,20 +1,34 @@
+import os
 import json
 from tqdm import tqdm
 
 
 class JsonHandler():
-    def __init__(self, ann_task_name):
+    def __init__(self, data_dir, ann_task_name):
         self.ann_task_name = ann_task_name
 
-    def __call__(self, json_file):
+        self.train_file = os.path.join(
+            data_dir, "annotations", f"{ann_task_name}_train.json"
+        )
+        self.val_file = os.path.join(
+            data_dir, "annotations", f"{ann_task_name}_val.json"
+        )
+
+    def __call__(self):
         """
         Unpacks annotation json file to list of dicts,
         according to the task name.
         """
         if self.ann_task_name == 'fho_hands':
-            return self._fho_hands_unpack(json_file)
+            return {
+                "train": self._fho_hands_unpack(self.train_file),
+                "val": self._fho_hands_unpack(self.val_file),
+            }
         elif self.ann_task_name == 'fho_scod':
-            return self._fho_scod_unpack(json_file)
+            return {
+                "train": self._fho_scod_unpack(self.train_file),
+                "val": self._fho_scod_unpack(self.val_file),
+            }
 
     def _fho_hands_unpack(self, json_file, all_data=False):
         """
@@ -79,7 +93,7 @@ class JsonHandler():
 
         return flatten_json_list
 
-    def _fho_scod_unpack(self, json_file, all_data=False):
+    def _fho_scod_unpack(self, json_file):
         """
         The target annotation file is "fho_scod_PHASE.json".
 
