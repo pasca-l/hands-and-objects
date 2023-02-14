@@ -53,8 +53,11 @@ class Ego4DObjnessClsDataset(Dataset):
     def _get_frames(self, info):
         frames = []
         for frame_type in ['pre_frame', 'pnr_frame', 'post_frame']:
-            frame_path = f"{self.frame_dir}{info['clip_uid']}/" +\
-                         f"{info[f'{frame_type}_num_clip']}.jpg"
+            frame_path = os.path.join(
+                self.frame_dir,
+                info['clip_uid'],
+                f"{info[f'{frame_type}_num_clip']}.jpg"
+            )
             try:
                 frame = cv2.imread(frame_path)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -117,7 +120,11 @@ class Ego4DObjnessClsDataset(Dataset):
         return mask
 
     def _create_mask(self, clip_uid, objs, label=2):
-        frame_path = f"{self.frame_dir}{clip_uid}/sample.jpg"
+        frame_path = os.path.join(
+            self.frame_dir,
+            clip_uid,
+            "sample.jpg"
+        )
         frame = cv2.imread(frame_path)
         height, width, _ = frame.shape
 
