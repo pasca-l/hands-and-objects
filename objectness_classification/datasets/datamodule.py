@@ -21,9 +21,11 @@ class ObjnessClsDataModule(pl.LightningDataModule):
     def __init__(
         self,
         dataset_dir,
+        batch_size=4,
     ):
         super().__init__()
         self.dataset_dir = dataset_dir
+        self.batch_size = batch_size
         self.transform = ObjnessClsDataPreprocessor()
 
     def setup(self, stage=None):

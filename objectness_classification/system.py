@@ -1,5 +1,5 @@
 import pytorch_lightning as pl
-from torchmetrics.classification import BinaryJaccardIndex
+# from torchmetrics.classification import BinaryJaccardIndex
 
 
 class ObjnessClassifier(pl.LightningModule):
