@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 
 sys.path.append("./datasets")
 from datasets.datamodule import ObjnessClsDataModule
-from datasets.transform import ObjnessClsDataPreprocessor
 from system import ObjnessClassifier
 
 sys.path.append("../utils")
@@ -17,15 +16,12 @@ from checker import Checker
 
 def option_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--task', type=str, default="fho_scod",
-                        choices=["fho_scod"])
-    parser.add_argument('-d', '--data_dir', type=str, 
-                        default='/home/aolab/data/ego4d/')
+    parser.add_argument('-d', '--dataset_dir', type=str,
+                        default='/home/aolab/data/')
     parser.add_argument('-m', '--model', type=str, default="unet",
                         choices=["unet"])
     parser.add_argument('-l', '--log_save_dir', type=str, default='./logs/')
     parser.add_argument('-r', '--delete_log_dir', action='store_true')
-    parser.add_argument('-e', '--extract_frame', action='store_true')
 
     return parser.parse_args()
 
@@ -36,21 +32,8 @@ def main():
     if args.delete_log_dir:
         shutil.rmtree(args.log_save_dir)
 
-    json_handler = JsonHandler(args.data_dir, args.task)
-    json_dict = json_handler()
-
-    if args.extract_frame:
-        extractor = Extractor(args.task, args.data_dir)
-        for flatten_json in json_dict.values():
-            extractor.extract_frame_as_image(flatten_json)
-
-    transform = ObjnessClsDataPreprocessor(args.model)
     dataset = ObjnessClsDataModule(
-        data_dir=f"{args.data_dir}frames/",
-        json_dict=json_dict,
-        transform=transform(),
-        batch_size=4,
-        label_mode='corners',
+        dataset_dir=args.dataset_dir,
     )
 
     module = importlib.import_module(f'models.{args.model}')
@@ -61,12 +44,7 @@ def main():
 
     checker = Checker(
         ObjnessClsDataModule(
-            data_dir=f"{args.data_dir}frames/",
-            json_dict=json_dict,
-            transform=None,
-            batch_size=1,
-            label_mode='corners',
-            with_info=True
+            dataset_dir=args.dataset_dir,
         ),
         system.model,
     )

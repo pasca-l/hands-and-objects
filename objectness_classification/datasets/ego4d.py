@@ -1,21 +1,34 @@
+import os
 import cv2
 import numpy as np
-import torch
 from torch.utils.data import Dataset
 
+sys.path.append("../../utils/ego4d")
+from json_handler import JsonHandler
+from video_extractor import Extractor
 
-class ObjnessClsDataset(Dataset):
+
+class Ego4DObjnessClsDataset(Dataset):
     def __init__(
         self,
-        data_dir,
-        flatten_json,
-        transform,
-        label_mode,
-        with_info,
+        dataset_dir,
+        task='fho_scod',
+        phase='train',
+        transform=None,
+        label_mode='corners',  # ['corners', 'COCO']
+        with_info=False,
+        extract=False,
     ):
         super().__init__()
-        self.frame_dir = data_dir
-        self.flatten_json = flatten_json
+
+        json_handler = JsonHandler(dataset_dir, task, phase)
+        self.flatten_json = json_handler()
+
+        if extract:
+            extractor = Extractor(dataset_dir, task)
+            extractor.extract_frame_as_image(self.flatten_json)
+
+        self.frame_dir = os.path.join(dataset_dir, "ego4d/frames")
         self.transform = transform
         self.label_mode = label_mode
         self.with_info = with_info

@@ -1,14 +1,13 @@
 import os
-import numpy as np
 import cv2
 from tqdm import tqdm
 
 
 class Extractor():
-    def __init__(self, ann_task_name, data_dir):
-        self.ann_task_name = ann_task_name
-        self.data_dir = data_dir
-        self.clip_dir = f"{data_dir}clips/"
+    def __init__(self, dataset_dir, task_name):
+        self.task_name = task_name
+        self.dataset_dir = dataset_dir
+        self.clip_dir = os.path.join(dataset_dir, "ego4d/clips")
 
     def trim_around_action(self, flatten_json):
         """
@@ -16,7 +15,7 @@ class Extractor():
         "DATA_DIR/action_clips/{clip_id}_{start_frame}_{end_frame}.mp4".
         """
 
-        action_data_dir = f"{self.data_dir}action_clips/"
+        action_data_dir = os.path.join(self.dataset_dir, "action_clips")
         os.makedirs(action_data_dir, exist_ok=True)
 
         for info in tqdm(flatten_json, desc='Trimming clip near action'):
@@ -45,7 +44,7 @@ class Extractor():
 
             writer.release()
             video.release()
-    
+
     def extract_frame_as_image(self, flatten_json, resize=True):
         """
         Saves necessary frames of clips containing action as png image, under 
@@ -53,7 +52,7 @@ class Extractor():
         Also, saves first original frame as "sample.jpg".
         """
 
-        frame_dir = f"{self.data_dir}frames/"
+        frame_dir = os.path.join(self.dataset_dir, "frames")
         os.makedirs(frame_dir, exist_ok=True)
 
         frame_dict = {}
@@ -61,19 +60,19 @@ class Extractor():
             frame_dict.setdefault(info["clip_uid"], set())
 
             # different extraction for tasks
-            if self.ann_task_name == 'fho_hands':
+            if self.task_name == 'fho_hands':
                 start_frame = info["clip_start_frame"]
                 end_frame = info["clip_end_frame"]
                 frame_dict[info["clip_uid"]] |=\
                     {i for i in range(start_frame, end_frame + 1)}
 
-            elif self.ann_task_name == 'fho_scod':
+            elif self.task_name == 'fho_scod':
                 frame_dict[info["clip_uid"]] |=\
                     {
                         info["pre_frame_num_clip"],
                         info["pnr_frame_num_clip"],
                         info["post_frame_num_clip"]
-                    }
+                }
 
             else:
                 raise Exception
@@ -105,7 +104,7 @@ class Extractor():
             video_path = f"{self.clip_dir}{clip_id}.mp4"
             video = cv2.VideoCapture(video_path)
 
-            for counter in range(1, int(video.get(cv2.CAP_PROP_FRAME_COUNT))+1):
+            for counter in range(1, int(video.get(cv2.CAP_PROP_FRAME_COUNT)) + 1):
                 ret, frame = video.read()
                 if ret == False:
                     break
@@ -117,7 +116,7 @@ class Extractor():
 
                 if counter in frame_nums:
                     if resize:
-                        frame = cv2.resize(frame, (224,224))
+                        frame = cv2.resize(frame, (224, 224))
                     frame_save_path = f"{frame_save_dir}{counter}.jpg"
                     cv2.imwrite(frame_save_path, frame)
 

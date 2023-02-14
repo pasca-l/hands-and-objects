@@ -1,7 +1,8 @@
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+from torch.utils.data import DataLoader
 
-from dataset import ObjnessClsDataset
+from ego4d import Ego4DObjnessClsDataset
+from transform import ObjnessClsDataPreprocessor
 
 
 class ObjnessClsDataModule(pl.LightningDataModule):
@@ -19,36 +20,22 @@ class ObjnessClsDataModule(pl.LightningDataModule):
 
     def __init__(
         self,
-        data_dir,
-        json_dict,
-        transform=None,
-        batch_size=4,
-        label_mode='corners', # ['corners', 'COCO']
-        with_info=False,
+        dataset_dir,
     ):
         super().__init__()
-        self.data_dir = data_dir
-        self.json_dict = json_dict
-        self.transform = transform
-        self.batch_size = batch_size
-        self.label_mode = label_mode
-        self.with_info = with_info
+        self.dataset_dir = dataset_dir
+        self.transform = ObjnessClsDataPreprocessor()
 
     def setup(self, stage=None):
         if stage == "fit" or stage is None:
-            self.train_data = ObjnessClsDataset(
-                data_dir=self.data_dir,
-                flatten_json=self.json_dict['train'],
+            self.train_data = Ego4DObjnessClsDataset(
+                dataset_dir=self.dataset_dir,
                 transform=self.transform,
-                label_mode=self.label_mode,
-                with_info=self.with_info,
             )
-            self.val_data = ObjnessClsDataset(
-                data_dir=self.data_dir,
-                flatten_json=self.json_dict['val'],
+            self.val_data = Ego4DObjnessClsDataset(
+                dataset_dir=self.dataset_dir,
+                phase='val',
                 transform=self.transform,
-                label_mode=self.label_mode,
-                with_info=self.with_info,
             )
 
         if stage == "test":

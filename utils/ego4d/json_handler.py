@@ -4,31 +4,25 @@ from tqdm import tqdm
 
 
 class JsonHandler():
-    def __init__(self, data_dir, ann_task_name):
-        self.ann_task_name = ann_task_name
-
-        self.train_file = os.path.join(
-            data_dir, "annotations", f"{ann_task_name}_train.json"
-        )
-        self.val_file = os.path.join(
-            data_dir, "annotations", f"{ann_task_name}_val.json"
-        )
+    def __init__(self, dataset_dir, task_name, phase):
+        self.task_name = task_name
+        self.ann_file = {
+            "train": os.path.join(
+                dataset_dir, "ego4d/annotations", f"{task_name}_train.json"
+            ),
+            "val": os.path.join(
+                dataset_dir, "ego4d/annotations", f"{task_name}_val.json"
+            ),
+        }[phase]
 
     def __call__(self):
         """
-        Unpacks annotation json file to list of dicts,
-        according to the task name.
+        Unpacks annotation json file, according to the task name and phase.
         """
-        if self.ann_task_name == 'fho_hands':
-            return {
-                "train": self._fho_hands_unpack(self.train_file),
-                "val": self._fho_hands_unpack(self.val_file),
-            }
-        elif self.ann_task_name == 'fho_scod':
-            return {
-                "train": self._fho_scod_unpack(self.train_file),
-                "val": self._fho_scod_unpack(self.val_file),
-            }
+        if self.task_name == 'fho_hands':
+            return self._fho_hands_unpack(self.ann_file)
+        elif self.task_name == 'fho_scod':
+            return self._fho_scod_unpack(self.ann_file)
 
     def _fho_hands_unpack(self, json_file, all_data=False):
         """
@@ -146,8 +140,8 @@ class JsonHandler():
                 for obj in frame_data['bbox']:
                     object_dict = {
                         "object_type": obj['object_type'],
-                        "structured_noun": obj['structured_noun'] \
-                                        if obj['structured_noun'] else '',
+                        "structured_noun": obj['structured_noun']
+                        if obj['structured_noun'] else '',
                         # "instance_num": obj['instance_number'],
                         "bbox_x": obj['bbox']['x'],
                         "bbox_y": obj['bbox']['y'],
