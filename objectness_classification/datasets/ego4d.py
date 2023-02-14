@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from torch.utils.data import Dataset
 
-sys.path.append("../../utils/ego4d")
+sys.path.append("../utils/ego4d")
 from json_handler import JsonHandler
 from video_extractor import Extractor
 
