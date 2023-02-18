@@ -6,8 +6,8 @@ from tqdm import tqdm
 class Extractor():
     def __init__(self, dataset_dir, task_name):
         self.task_name = task_name
-        self.dataset_dir = dataset_dir
-        self.clip_dir = os.path.join(dataset_dir, "ego4d/clips")
+        self.data_dir = os.path.join(dataset_dir, "ego4d/")
+        self.clip_dir = os.path.join(self.data_dir, "clips/")
 
     def trim_around_action(self, flatten_json):
         """
@@ -15,7 +15,7 @@ class Extractor():
         "DATA_DIR/action_clips/{clip_id}_{start_frame}_{end_frame}.mp4".
         """
 
-        action_data_dir = os.path.join(self.dataset_dir, "action_clips")
+        action_data_dir = os.path.join(self.data_dir, "action_clips/")
         os.makedirs(action_data_dir, exist_ok=True)
 
         for info in tqdm(flatten_json, desc='Trimming clip near action'):
@@ -52,7 +52,7 @@ class Extractor():
         Also, saves first original frame as "sample.jpg".
         """
 
-        frame_dir = os.path.join(self.dataset_dir, "frames")
+        frame_dir = os.path.join(self.data_dir, "frames/")
         os.makedirs(frame_dir, exist_ok=True)
 
         frame_dict = {}
@@ -98,7 +98,7 @@ class Extractor():
             if len(frame_nums) == 0:
                 continue
 
-            frame_save_dir = f"{frame_dir}{clip_id}/"
+            frame_save_dir = os.path.join(frame_dir, f"{clip_id}/")
             os.makedirs(frame_save_dir, exist_ok=True)
 
             video_path = f"{self.clip_dir}{clip_id}.mp4"

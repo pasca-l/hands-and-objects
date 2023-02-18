@@ -1,10 +1,13 @@
 import os
 import sys
+import git
 import cv2
 import numpy as np
 from torch.utils.data import Dataset
 
-sys.path.append("../utils/ego4d")
+git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
+git_root = git_repo.git.rev_parse("--show-toplevel")
+sys.path.append(f"{git_root}/utils/ego4d")
 from json_handler import JsonHandler
 from video_extractor import Extractor
 
@@ -44,6 +47,7 @@ class Ego4DObjnessClsDataset(Dataset):
 
         if self.transform != None:
             frames = self.transform(frames)
+            labels = self.transform(labels)
 
         if self.with_info:
             return frames, labels, info
@@ -116,29 +120,54 @@ class Ego4DObjnessClsDataset(Dataset):
         objs["labels"] = np.array(objs["labels"])
         objs["points"] = np.array(objs["points"])
 
-        mask = self._create_mask(info['clip_uid'], objs, 2)
+        mask = self._create_mask(info['clip_uid'], objs)
         return mask
 
-    def _create_mask(self, clip_uid, objs, label=2):
+    def _create_mask(self, clip_uid, objs):
         frame_path = os.path.join(
             self.frame_dir,
             clip_uid,
             "sample.jpg"
         )
         frame = cv2.imread(frame_path)
-        height, width, _ = frame.shape
+        h, w, _ = frame.shape
 
         masks = []
         for frame_type in range(3):
-            mask = np.zeros((height, width))
-            point_idx = np.where(
-                (objs["labels"] == label) & (objs["frame_type"] == frame_type)
+            label_masks = []
+
+            # mask for state change object
+            stobj_pt_idx = np.where(
+                (objs["labels"] == 2) & (objs["frame_type"] == frame_type)
             )
-            points = objs["points"][point_idx]
+            stobj_pts = objs["points"][stobj_pt_idx]
 
-            mask = cv2.fillPoly(mask, np.int32(points), 1)
-            mask = cv2.resize(mask, (224, 224))
+            stobj = cv2.fillPoly(np.zeros((h, w)), np.int32(stobj_pts), 1)
+            stobj = cv2.resize(stobj, (224, 224))
 
-            masks.append(mask)
+            # mask for hands
+            lhand_pt_idx = np.where(
+                (objs["labels"] == 0) & (objs["frame_type"] == frame_type)
+            )
+            lhand_pts = objs["points"][lhand_pt_idx]
+            rhand_pt_idx = np.where(
+                (objs["labels"] == 1) & (objs["frame_type"] == frame_type)
+            )
+            rhand_pts = objs["points"][rhand_pt_idx]
+
+            hands = cv2.fillPoly(np.zeros((h, w)), np.int32(lhand_pts), 1)
+            hands = cv2.fillPoly(hands, np.int32(rhand_pts), 1)
+            hands = cv2.resize(hands, (224, 224))
+
+            # mask for background
+            bg = np.where(
+                (stobj == 1) | (hands == 1),
+                0.0, 1.0
+            )
+
+            label_masks.append(bg)
+            label_masks.append(stobj)
+            label_masks.append(hands)
+            masks.append(label_masks)
 
         return np.array(masks)

@@ -1,23 +1,22 @@
+import os
 import sys
 import argparse
 import shutil
 import importlib
+import git
 import pytorch_lightning as pl
 
-sys.path.append("./datasets")
-from datasets.datamodule import ObjnessClsDataModule
+git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
+git_root = git_repo.git.rev_parse("--show-toplevel")
+sys.path.append(f"{git_root}/objectness_classification/datasets")
+from datamodule import ObjnessClsDataModule
 from system import ObjnessClassifier
-
-sys.path.append("../utils")
-from json_handler import JsonHandler
-from video_extractor import Extractor
-from checker import Checker
 
 
 def option_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dataset_dir', type=str,
-                        default='/home/aolab/data/')
+                        default='/Users/shionyamadate/Documents/datasets')
     parser.add_argument('-m', '--model', type=str, default="unet",
                         choices=["unet"])
     parser.add_argument('-l', '--log_save_dir', type=str, default='./logs/')
@@ -34,6 +33,7 @@ def main():
 
     dataset = ObjnessClsDataModule(
         dataset_dir=args.dataset_dir,
+        dataset_mode='egohos',
     )
 
     module = importlib.import_module(f'models.{args.model}')
@@ -41,15 +41,6 @@ def main():
     classifier = ObjnessClassifier(
         sys=system
     )
-
-    checker = Checker(
-        ObjnessClsDataModule(
-            dataset_dir=args.dataset_dir,
-        ),
-        system.model,
-    )
-    checker.check_dataset()
-    return
 
     logger = pl.loggers.TensorBoardLogger(
         save_dir=args.log_save_dir

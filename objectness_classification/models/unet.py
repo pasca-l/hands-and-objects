@@ -22,11 +22,12 @@ class Unet(nn.Module):
             encoder_name="resnet101",
             encoder_weights="imagenet",
             in_channels=3,
-            classes=1
+            classes=3
         )
 
     def forward(self, x):
-        x = x.permute(1, 0, 4, 2, 3)[1]
+        x = x.permute(0, 3, 1, 2)
+        # x = x.permute(1, 0, 4, 2, 3)[1]
         x = self.unet(x)
 
         return x
