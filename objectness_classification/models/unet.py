@@ -22,7 +22,7 @@ class Unet(nn.Module):
             encoder_name="resnet101",
             encoder_weights="imagenet",
             in_channels=3,
-            classes=3
+            classes=2
         )
 
     def forward(self, x):
@@ -38,7 +38,7 @@ class DiceLoss(nn.Module):
         super().__init__()
 
     def forward(self, inputs, targets, smooth=1):
-        targets = targets[:,1:2,:,:]
+        targets = targets[:,1:,:,:]
         inputs = nnf.sigmoid(inputs)
 
         inputs = torch.flatten(inputs)
