@@ -11,6 +11,7 @@ class EgoHOSObjnessClsDataset(Dataset):
         dataset_dir,
         phase='train',
         transform=None,
+        with_info=False,
     ):
         super().__init__()
 
@@ -21,6 +22,7 @@ class EgoHOSObjnessClsDataset(Dataset):
             columns=["file_name"]
         )
         self.transform = transform
+        self.with_info = with_info
 
     def __len__(self):
         return len(self.df_files)
@@ -32,6 +34,9 @@ class EgoHOSObjnessClsDataset(Dataset):
 
         if self.transform != None:
             frame = self.transform(frame)
+
+        if self.with_info:
+            return frame, label, file_name
 
         return frame, label
 

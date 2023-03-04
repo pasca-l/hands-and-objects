@@ -50,6 +50,7 @@ class Ego4DObjnessClsDataset(Dataset):
             labels = self.transform(labels)
 
         if self.with_info:
+            info["index"] = index
             return frames, labels, info
 
         return frames, labels
