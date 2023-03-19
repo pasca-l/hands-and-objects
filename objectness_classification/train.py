@@ -11,6 +11,7 @@ git_root = git_repo.git.rev_parse("--show-toplevel")
 sys.path.append(f"{git_root}/objectness_classification/datasets")
 from datamodule import ObjnessClsDataModule
 from system import ObjnessClassifier
+from seed import set_seed
 
 
 def option_parser():
@@ -30,6 +31,8 @@ def main():
 
     if args.delete_log_dir:
         shutil.rmtree(args.log_save_dir)
+
+    set_seed()
 
     dataset = ObjnessClsDataModule(
         dataset_dir=args.dataset_dir,
