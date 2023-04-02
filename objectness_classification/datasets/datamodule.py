@@ -8,8 +8,11 @@ from transform import ObjnessClsDataPreprocessor
 
 class ObjnessClsDataModule(pl.LightningDataModule):
     """
-    Fetches total of 3 frames per state change: pre, pnr, and post frames.
-    Labels are given by a mask of background (0), and foreground (1).
+    Fetches frames and labeled masks.
+        ego4d: 
+            Fetches total of 3 frames per state change: pre, pnr, and post frames. Labels are given by mask of background (0) and bounding box level state-changing object (1).
+        egohos:
+            Fetches frames from few egocentric dataset source. Labels are given by a mask of background (0), and pixel level foreground (any object that is interacted by the photographer) (1), and pixel level hands (2).
 
     Returns:
         [
