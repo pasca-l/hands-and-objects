@@ -36,7 +36,9 @@ def main():
 
     dataset = ObjnessClsDataModule(
         dataset_dir=args.dataset_dir,
-        dataset_mode='egohos',
+        dataset_mode='pet',
+        batch_size=16,
+        with_transform=True,
     )
 
     module = importlib.import_module(f'models.{args.model}')
@@ -60,7 +62,7 @@ def main():
         accelerator='auto',
         devices='auto',
         auto_select_gpus=True,
-        max_epochs=10,
+        max_epochs=5,
         logger=logger,
         callbacks=[checkpoint_callback]
     )

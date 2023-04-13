@@ -15,18 +15,18 @@ class System():
             activation="sigmoid",
         )
         self.loss = smp.losses.DiceLoss(
-            mode="multilabel",
+            mode="binary",
         )
         self.optimizer = optim.Adam(
             self.model.parameters(),
-            lr=0.001
+            lr=1e-4,
         )
 
     def metric(self, output, target):
         tp, fp, fn, tn = smp.metrics.get_stats(
             output,
             target.to(torch.int64),
-            mode="multilabel",
+            mode="binary",
             threshold=0.5,
         )
         iou_score = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")

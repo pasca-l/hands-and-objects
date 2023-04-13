@@ -5,7 +5,8 @@ from torchvision import transforms
 class ObjnessClsDataPreprocessor:
     def __call__(self, x):
         transform = transforms.Compose([
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            # transforms.Normalize([0.45], [0.225]),
         ])
 #     transform = transforms.Compose([
 #         transforms.Lambda(
