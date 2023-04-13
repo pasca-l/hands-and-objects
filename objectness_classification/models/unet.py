@@ -11,11 +11,11 @@ class System():
             encoder_name="resnet101",
             encoder_weights="imagenet",
             in_channels=3,
-            classes=2,
+            classes=1,
             activation="sigmoid",
         )
         self.loss = smp.losses.DiceLoss(
-            mode='binary'
+            mode="multilabel",
         )
         self.optimizer = optim.Adam(
             self.model.parameters(),
@@ -25,8 +25,8 @@ class System():
     def metric(self, output, target):
         tp, fp, fn, tn = smp.metrics.get_stats(
             output,
-            target,
-            mode='binary',
+            target.to(torch.int64),
+            mode="multilabel",
             threshold=0.5,
         )
         iou_score = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
