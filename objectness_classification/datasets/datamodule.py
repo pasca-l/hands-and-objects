@@ -1,11 +1,12 @@
 import os
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from ego4d import Ego4DObjnessClsDataset
 from egohos import EgoHOSObjnessClsDataset
 from oxford_iiit_pet import PetSegmentDataset
-from transform import ObjnessClsDataPreprocessor
+# from transform import ObjnessClsDataPreprocessor
 
 
 class ObjnessClsDataModule(pl.LightningDataModule):
@@ -39,7 +40,10 @@ class ObjnessClsDataModule(pl.LightningDataModule):
         self.with_info = with_info
 
         if with_transform:
-            self.transform = ObjnessClsDataPreprocessor()
+            self.transform = transforms.Compose([
+                transforms.ToTensor(),
+                # transforms.Normalize([0.45], [0.225]),
+            ])
         else:
             self.transform = None
 

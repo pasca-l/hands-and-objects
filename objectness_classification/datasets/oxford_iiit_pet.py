@@ -31,6 +31,7 @@ class PetSegmentDataset(Dataset):
         trimap = data_dict['trimap']
 
         if self.transform != None:
+            image = image.transpose(1,2,0)
             image = self.transform(image)
 
         if self.with_info:
