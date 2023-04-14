@@ -29,10 +29,10 @@ class System():
             mode="binary",
             threshold=0.5,
         )
-        iou_score = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
-        f1_score = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
-        f2_score = smp.metrics.fbeta_score(tp, fp, fn, tn, beta=2, reduction="micro")
+        iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
+        f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
+        f2 = smp.metrics.fbeta_score(tp, fp, fn, tn, beta=2, reduction="micro")
         accuracy = smp.metrics.accuracy(tp, fp, fn, tn, reduction="macro")
         recall = smp.metrics.recall(tp, fp, fn, tn, reduction="micro-imagewise")
 
-        return iou_score, f1_score, f2_score, accuracy, recall
+        return iou, f1, f2, accuracy, recall

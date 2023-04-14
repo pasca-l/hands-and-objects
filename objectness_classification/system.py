@@ -11,29 +11,31 @@ class ObjnessClassifier(pl.LightningModule):
         self.metric = sys.metric
 
     def training_step(self, batch, batch_idx):
-        frames, label = batch[0], batch[1]
+        frames, labels = batch[0], batch[1]
         logits = self.model(frames)
-        loss = self.loss(logits, label)
+        loss = self.loss(logits, labels)
 
-        iou_score, f1_score, f2_score, accuracy, recall = self.metric(logits, label)
+        iou, f1, f2, acc, recall = self.metric(logits, labels)
 
         self.log("train_loss", loss, on_step=True)
-        self.log("iou", iou_score, on_step=True)
-        self.log("accuracy", accuracy, on_step=True)
+        self.log_dict(
+            {
+                "iou": iou,
+                "accuracy": acc,
+            },
+            on_step=True,
+        )
         return loss
 
     def validation_step(self, batch, batch_idx):
-        frames, label = batch[0], batch[1]
+        frames, labels = batch[0], batch[1]
         logits = self.model(frames)
-        loss = self.loss(logits, label)
+        loss = self.loss(logits, labels)
 
-        # metric = BinaryJaccardIndex()
         self.log("val_loss", loss, on_step=False, on_epoch=True)
-        # self.log("iou", metric(logits, label[:,1:2,:,:]), on_step=True)
 
     def configure_optimizers(self):
         return self.optimizer
 
     def forward(self, x):
-        self.model.eval()
         return self.model(x)
