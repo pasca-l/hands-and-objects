@@ -4,6 +4,7 @@ import argparse
 import shutil
 import importlib
 import git
+import torch
 import pytorch_lightning as pl
 
 git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
@@ -36,7 +37,7 @@ def main():
 
     dataset = ObjnessClsDataModule(
         dataset_dir=args.dataset_dir,
-        dataset_mode='pet',
+        dataset_mode='egohos',
         batch_size=16,
         with_transform=True,
     )
@@ -61,8 +62,7 @@ def main():
     trainer = pl.Trainer(
         accelerator='auto',
         devices='auto',
-        auto_select_gpus=True,
-        max_epochs=5,
+        max_epochs=10,
         logger=logger,
         callbacks=[checkpoint_callback]
     )
@@ -71,6 +71,11 @@ def main():
         classifier,
         datamodule=dataset,
         # ckpt_path=None
+    )
+
+    torch.save(
+        obj=classifier.model.state_dict(),
+        f=os.path.join(args.log_save_dir, f"{args.model}.pth")
     )
 
 
