@@ -6,6 +6,7 @@ from torchvision import transforms
 from ego4d import Ego4DObjnessClsDataset
 from egohos import EgoHOSObjnessClsDataset
 from oxford_iiit_pet import PetSegmentDataset
+from pascal_voc2012 import PascalVOC2012Dataset
 # from transform import ObjnessClsDataPreprocessor
 
 
@@ -42,7 +43,10 @@ class ObjnessClsDataModule(pl.LightningDataModule):
         if with_transform:
             self.transform = transforms.Compose([
                 transforms.ToTensor(),
-                # transforms.Normalize([0.45], [0.225]),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225],
+                ),
             ])
         else:
             self.transform = None
@@ -111,6 +115,21 @@ class ObjnessClsDataModule(pl.LightningDataModule):
                     transform=self.transform,
                     with_info=self.with_info,
                 )
+
+            if stage == "predict":
+                self.predict_data = None
+
+        elif self.dataset_mode == 'voc2012':
+            if stage == "fit" or stage is None:
+                self.train_data = PascalVOC2012Dataset(
+                    dataset_dir=self.dataset_dir,
+                    transform=self.transform,
+                    with_info=self.with_info,
+                )
+                self.val_data = None
+
+            if stage == "test":
+                self.test_data = None
 
             if stage == "predict":
                 self.predict_data = None
