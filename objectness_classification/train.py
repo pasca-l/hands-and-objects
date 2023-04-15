@@ -3,6 +3,7 @@ import sys
 import argparse
 import shutil
 import importlib
+import datetime
 import git
 import torch
 import pytorch_lightning as pl
@@ -21,7 +22,7 @@ def option_parser():
                         default='/Users/shionyamadate/Documents/datasets')
     parser.add_argument('-m', '--model', type=str, default="unet",
                         choices=["unet"])
-    parser.add_argument('-l', '--log_save_dir', type=str, default='./logs/')
+    parser.add_argument('-l', '--log_dir', type=str, default='./logs/')
     parser.add_argument('-r', '--delete_log_dir', action='store_true')
 
     return parser.parse_args()
@@ -29,9 +30,6 @@ def option_parser():
 
 def main():
     args = option_parser()
-
-    if args.delete_log_dir:
-        shutil.rmtree(args.log_save_dir)
 
     set_seed()
 
@@ -45,24 +43,31 @@ def main():
     module = importlib.import_module(f'models.{args.model}')
     system = module.System()
     classifier = ObjnessClassifier(
-        sys=system
+        model=system.model,
+        loss=system.loss,
+        optimizer=system.optimizer,
+        metric=system.metric,
     )
 
+    if args.delete_log_dir:
+        shutil.rmtree(args.log_dir)
+    log_id = datetime.datetime.now().isoformat()
+
     logger = pl.loggers.TensorBoardLogger(
-        save_dir=args.log_save_dir
+        save_dir=args.log_dir,
+        version=log_id,
     )
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
         save_top_k=1,
         # save_weights_only=True,
         monitor="train_loss",
         mode='min',
-        dirpath=args.log_save_dir,
-        filename=args.model
+        dirpath=args.log_dir,
     )
     trainer = pl.Trainer(
         accelerator='auto',
         devices='auto',
-        max_epochs=10,
+        max_epochs=1,
         logger=logger,
         callbacks=[checkpoint_callback]
     )
@@ -74,8 +79,12 @@ def main():
     )
 
     torch.save(
-        obj=classifier.model.state_dict(),
-        f=os.path.join(args.log_save_dir, f"{args.model}.pth")
+        classifier.model.state_dict(),
+        f=os.path.join(
+            args.log_dir,
+            log_id,
+            f"{args.model}.pth"
+        )
     )
 
 

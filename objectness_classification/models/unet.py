@@ -1,6 +1,4 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as nnf
 import torch.optim as optim
 import segmentation_models_pytorch as smp
 
@@ -12,15 +10,23 @@ class System():
             encoder_weights="imagenet",
             in_channels=3,
             classes=1,
-            activation="sigmoid",
+            # activation="sigmoid",
         )
         self.loss = smp.losses.DiceLoss(
             mode="binary",
+            from_logits=True,
         )
-        self.optimizer = optim.Adam(
-            self.model.parameters(),
-            lr=1e-4,
-        )
+        self.optimizer = {
+            "optimizer": (optimizer := optim.Adam(
+                self.model.parameters(),
+                lr=1e-4,
+            )),
+            "lr_scheduler": optim.lr_scheduler.MultiStepLR(
+                optimizer,
+                milestones=[2, 4, 6, 8],
+                gamma=0.1,
+            ),
+        }
 
     def metric(self, output, target):
         tp, fp, fn, tn = smp.metrics.get_stats(
@@ -32,7 +38,13 @@ class System():
         iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
         f1 = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
         f2 = smp.metrics.fbeta_score(tp, fp, fn, tn, beta=2, reduction="micro")
-        accuracy = smp.metrics.accuracy(tp, fp, fn, tn, reduction="macro")
+        acc = smp.metrics.accuracy(tp, fp, fn, tn, reduction="macro")
         recall = smp.metrics.recall(tp, fp, fn, tn, reduction="micro-imagewise")
 
-        return iou, f1, f2, accuracy, recall
+        return {
+            "iou_score": iou,
+            "f1_score": f1,
+            "f2_score": f2,
+            "accuracy": acc,
+            "recall": recall,
+        }
