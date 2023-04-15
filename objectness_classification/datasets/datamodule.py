@@ -49,7 +49,9 @@ class ObjnessClsDataModule(pl.LightningDataModule):
                 ),
             ])
         else:
-            self.transform = None
+            self.transform = transforms.Compose([
+                transforms.ToTensor(),
+            ])
 
         self.num_workers=os.cpu_count()
 
