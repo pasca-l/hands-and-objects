@@ -23,15 +23,17 @@ class System():
             )),
             "lr_scheduler": optim.lr_scheduler.MultiStepLR(
                 optimizer,
-                milestones=[2, 4, 6, 8],
+                milestones=list(range(2,10,2)),
                 gamma=0.1,
             ),
         }
 
     def metric(self, output, target):
+        obj_mask, hand_mask = target[:,0:1,:,:], target[:,1:2,:,:]
+
         tp, fp, fn, tn = smp.metrics.get_stats(
             output,
-            target.to(torch.int64),
+            obj_mask.to(torch.int64),
             mode="binary",
             threshold=0.5,
         )
@@ -41,7 +43,7 @@ class System():
         acc = smp.metrics.accuracy(tp, fp, fn, tn, reduction="macro")
         recall = smp.metrics.recall(tp, fp, fn, tn, reduction="micro-imagewise")
 
-        convergence = (output.sigmoid() * target).sum() / target.sum()
+        convergence = (output.sigmoid() * hand_mask).sum() / hand_mask.sum()
 
         return {
             f"iou_score": iou,
