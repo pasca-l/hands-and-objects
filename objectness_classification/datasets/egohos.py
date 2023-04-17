@@ -83,6 +83,6 @@ class EgoHOSObjnessClsDataset(Dataset):
 
         # masks.append(bg)
         masks.append(objects)
-        # masks.append(hands)
+        masks.append(hands)
 
         return np.array(masks)
