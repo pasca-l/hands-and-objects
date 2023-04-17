@@ -19,8 +19,8 @@ class Ego4DObjnessClsDataset(Dataset):
         task='fho_scod',
         phase='train',
         transform=None,
-        label_mode='corners',  # ['corners', 'COCO']
         with_info=False,
+        label_mode='corners',  # ['corners', 'COCO']
         extract=False,
     ):
         super().__init__()
@@ -47,7 +47,7 @@ class Ego4DObjnessClsDataset(Dataset):
 
         if self.transform != None:
             frames = self.transform(frames)
-            labels = self.transform(labels)
+            # labels = self.transform(labels)
 
         if self.with_info:
             info["index"] = index
