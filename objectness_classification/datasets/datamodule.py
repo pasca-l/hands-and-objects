@@ -91,7 +91,12 @@ class ObjnessClsDataModule(pl.LightningDataModule):
                 )
 
             if stage == "test":
-                self.test_data = None
+                self.test_data = EgoHOSObjnessClsDataset(
+                    dataset_dir=self.dataset_dir,
+                    phase='test_indomain',
+                    transform=self.transform,
+                    with_info=self.with_info,
+                )
 
             if stage == "predict":
                 self.predict_data = None
@@ -148,6 +153,14 @@ class ObjnessClsDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.val_data,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True
+        )
+
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_data,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=True
