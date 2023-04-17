@@ -67,7 +67,7 @@ def main():
     trainer = pl.Trainer(
         accelerator='auto',
         devices='auto',
-        max_epochs=1,
+        max_epochs=10,
         logger=logger,
         # callbacks=[checkpoint_callback]
     )
@@ -86,6 +86,11 @@ def main():
             log_id,
             f"{args.model}.pth"
         )
+    )
+
+    trainer.test(
+        classifier,
+        datamodule=dataset,
     )
 
 
