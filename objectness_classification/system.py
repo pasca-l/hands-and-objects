@@ -25,17 +25,17 @@ class ObjnessClassifier(pl.LightningModule):
         metric_dict = {f"{k}/{phase}":v for k,v in metric_dict.items()}
         self.log_dict(metric_dict, on_step=True, on_epoch=True)
 
-        return loss, metric_dict
+        return loss
 
     def training_step(self, batch, batch_idx):
-        loss, _ = self._shared_step(batch, phase="train")
+        loss = self._shared_step(batch, phase="train")
         return loss
 
     def validation_step(self, batch, batch_idx):
-        _, _ = self._shared_step(batch, phase="val")
+        _ = self._shared_step(batch, phase="val")
 
     def test_step(self, batch, batch_idx):
-        _, _ = self._shared_step(batch, phase="test")
+        _ = self._shared_step(batch, phase="test")
 
     def configure_optimizers(self):
         return self.optimizer
