@@ -36,7 +36,7 @@ def main():
     dataset = ObjnessClsDataModule(
         dataset_dir=args.dataset_dir,
         dataset_mode='egohos',
-        batch_size=16,
+        batch_size=32,
         with_transform=True,
     )
 
@@ -57,19 +57,19 @@ def main():
         save_dir=args.log_dir,
         version=log_id,
     )
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        save_top_k=1,
-        # save_weights_only=True,
-        monitor="train_loss",
-        mode='min',
-        dirpath=args.log_dir,
-    )
+    # checkpoint_callback = pl.callbacks.ModelCheckpoint(
+    #     save_top_k=1,
+    #     # save_weights_only=True,
+    #     monitor="train_loss",
+    #     mode='min',
+    #     dirpath=args.log_dir,
+    # )
     trainer = pl.Trainer(
         accelerator='auto',
         devices='auto',
         max_epochs=1,
         logger=logger,
-        callbacks=[checkpoint_callback]
+        # callbacks=[checkpoint_callback]
     )
 
     trainer.fit(
@@ -82,6 +82,7 @@ def main():
         classifier.model.state_dict(),
         f=os.path.join(
             args.log_dir,
+            "lightning_logs",
             log_id,
             f"{args.model}.pth"
         )
