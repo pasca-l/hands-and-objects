@@ -41,10 +41,13 @@ class System():
         acc = smp.metrics.accuracy(tp, fp, fn, tn, reduction="macro")
         recall = smp.metrics.recall(tp, fp, fn, tn, reduction="micro-imagewise")
 
+        convergence = (output.sigmoid() * target).sum() / target.sum()
+
         return {
-            "iou_score": iou,
-            "f1_score": f1,
-            "f2_score": f2,
-            "accuracy": acc,
-            "recall": recall,
+            f"iou_score": iou,
+            f"f1_score": f1,
+            f"f2_score": f2,
+            f"accuracy": acc,
+            f"recall": recall,
+            f"convergence": convergence,
         }
