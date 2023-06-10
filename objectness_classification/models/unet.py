@@ -10,8 +10,8 @@ class System(pl.LightningModule):
         encoder_name="resnet101",
         encoder_weights="imagenet",
         in_channels=3,
-        out_channels=1,
-        mode="binary",
+        out_channels=1,  # [1, 2]
+        mode="binary",  # ["binary", "multilabel"]
         threshold=0.5,
         lr=1e-4,
     ):
