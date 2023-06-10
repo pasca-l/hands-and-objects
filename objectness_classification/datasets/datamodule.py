@@ -1,13 +1,12 @@
 import os
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
-from torchvision import transforms
 
 from ego4d import Ego4DObjnessClsDataset
 from egohos import EgoHOSObjnessClsDataset
 from oxford_iiit_pet import PetSegmentDataset
 from pascal_voc2012 import PascalVOC2012Dataset
-# from transform import ObjnessClsDataPreprocessor
+from transform import ObjnessClsDataPreprocessor
 
 
 class ObjnessClsDataModule(pl.LightningDataModule):
@@ -31,30 +30,22 @@ class ObjnessClsDataModule(pl.LightningDataModule):
         dataset_dir,
         dataset_mode='ego4d',  # ['ego4d', 'egohos']
         batch_size=4,
-        with_transform=False,
+        transform_mode='base',  # ['base', 'display', 'aug[num]']
         with_info=False,
     ):
         super().__init__()
+        self.save_hyperparameters()
+
         self.dataset_dir = dataset_dir
         self.dataset_mode = dataset_mode
         self.batch_size = batch_size
         self.with_info = with_info
 
-        if with_transform:
-            self.transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                ),
-                transforms.RandomHorizontalFlip(),
-            ])
-        else:
-            self.transform = transforms.Compose([
-                transforms.ToTensor(),
-            ])
-
         self.num_workers=os.cpu_count()
+
+        self.transform = ObjnessClsDataPreprocessor(
+            transform_mode=transform_mode
+        )
 
     def setup(self, stage=None):
         if self.dataset_mode == 'ego4d':
@@ -92,12 +83,20 @@ class ObjnessClsDataModule(pl.LightningDataModule):
                 )
 
             if stage == "test":
-                self.test_data = EgoHOSObjnessClsDataset(
-                    dataset_dir=self.dataset_dir,
-                    phase='test_indomain',
-                    transform=self.transform,
-                    with_info=self.with_info,
-                )
+                self.test_data = [
+                    EgoHOSObjnessClsDataset(
+                        dataset_dir=self.dataset_dir,
+                        phase='test_indomain',
+                        transform=self.transform,
+                        with_info=self.with_info,
+                    ),
+                    EgoHOSObjnessClsDataset(
+                        dataset_dir=self.dataset_dir,
+                        phase='test_outdomain',
+                        transform=self.transform,
+                        with_info=self.with_info,
+                    )
+                ]
 
             if stage == "predict":
                 self.predict_data = None
@@ -160,9 +159,12 @@ class ObjnessClsDataModule(pl.LightningDataModule):
         )
 
     def test_dataloader(self):
-        return DataLoader(
-            self.test_data,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=True
-        )
+        return [
+            DataLoader(
+                dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                pin_memory=True
+            )
+            for dataset in self.test_data
+        ]

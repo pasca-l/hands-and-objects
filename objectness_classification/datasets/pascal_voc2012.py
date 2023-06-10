@@ -34,9 +34,7 @@ class PascalVOC2012Dataset(Dataset):
         image = self._get_image(file_name)
         label = self._get_label(file_name)
 
-        if self.transform != None:
-            image = self.transform(image)
-            label = torch.as_tensor(label, dtype=torch.float)
+        image, label = self.transform(image, label)
 
         if self.with_info:
             return image, label, file_name
@@ -72,6 +70,6 @@ class PascalVOC2012Dataset(Dataset):
         bg = np.where(label == 0, 1, 0)
         obj = np.where(label != 0, 1, 0)
 
-        mask = np.stack([bg, obj])
+        mask = np.stack([bg, obj], axis=-1)
 
         return mask

@@ -32,8 +32,7 @@ class EgoHOSObjnessClsDataset(Dataset):
         frame = self._get_frame(file_name)
         label = self._get_label(file_name)
 
-        if self.transform != None:
-            frame = self.transform(frame)
+        frame, label = self.transform(frame, label)
 
         if self.with_info:
             return frame, label, file_name
@@ -85,4 +84,4 @@ class EgoHOSObjnessClsDataset(Dataset):
         masks.append(objects)
         masks.append(hands)
 
-        return np.array(masks)
+        return np.array(masks).transpose(1,2,0)

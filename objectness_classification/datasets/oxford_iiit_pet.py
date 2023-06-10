@@ -1,6 +1,5 @@
 import os
 from torch.utils.data import Dataset
-
 from segmentation_models_pytorch.datasets import SimpleOxfordPetDataset
 
 
@@ -30,9 +29,9 @@ class PetSegmentDataset(Dataset):
         mask = data_dict['mask']
         trimap = data_dict['trimap']
 
-        if self.transform != None:
-            image = image.transpose(1,2,0)
-            image = self.transform(image)
+        image = image.transpose(1,2,0)
+        mask = mask.transpose(1,2,0)
+        image, mask = self.transform(image, mask)
 
         if self.with_info:
             return image, mask, trimap
