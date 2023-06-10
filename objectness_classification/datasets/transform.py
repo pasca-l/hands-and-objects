@@ -43,6 +43,10 @@ class ObjnessClsDataPreprocessor:
         if self.transform_mode == 'aug1':
             transform  = transforms.Compose([
                 transforms.RandomHorizontalFlip(),
+                # transforms.RandomResizedCrop((224, 224)),
+                # transforms.RandomAffine(0, translate=(0.9, 0.9), scale=(1, 1.2)),
+                transforms.CenterCrop((112, 112)),
+                transforms.Resize((224, 224)),
             ])
 
         else:
