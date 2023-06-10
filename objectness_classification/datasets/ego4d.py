@@ -3,11 +3,12 @@ import sys
 import git
 import cv2
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
-sys.path.append(f"{git_root}/utils/ego4d")
+sys.path.append(f"{git_root}/utils/datasets/ego4d")
 from json_handler import JsonHandler
 from video_extractor import Extractor
 
@@ -42,12 +43,15 @@ class Ego4DObjnessClsDataset(Dataset):
 
     def __getitem__(self, index):
         info = self.flatten_json[index]
-        labels = self._get_labels(info)
         frames = self._get_frames(info)
+        labels = self._get_labels(info)
 
-        if self.transform != None:
-            frames = self.transform(frames)
-            # labels = self.transform(labels)
+        for i, (frame, label) in enumerate(zip(frames, labels)):
+            frame, label = self.transform(frame, label)
+            frames[i], labels[i] = frame, label
+
+        frames = torch.stack(frames)
+        labels = torch.stack(labels)
 
         if self.with_info:
             info["index"] = index
@@ -73,7 +77,7 @@ class Ego4DObjnessClsDataset(Dataset):
 
             frames.append(frame)
 
-        return np.array(frames)
+        return frames
 
     def _get_labels(self, info):
         objs = {
@@ -169,6 +173,6 @@ class Ego4DObjnessClsDataset(Dataset):
             label_masks.append(bg)
             label_masks.append(stobj)
             label_masks.append(hands)
-            masks.append(label_masks)
+            masks.append(np.array(label_masks).transpose(1,2,0))
 
-        return np.array(masks)
+        return masks
