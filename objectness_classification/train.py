@@ -40,7 +40,7 @@ def main():
         dataset_dir=args.dataset_dir,
         dataset_mode='egohos',
         batch_size=32,
-        with_transform=True,
+        transform_mode='base',
     )
 
     module = importlib.import_module(f'models.{args.model}')
