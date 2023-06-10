@@ -6,16 +6,15 @@ import segmentation_models_pytorch as smp
 
 class System(pl.LightningModule):
     def __init__(
-            self,
-            encoder_name="resnet101",
-            encoder_weights="imagenet",
-            in_channels=3,
-            out_channels=1,
-            mode="binary",
-            threshold=0.5,
-            lr=1e-4,
-        ):
-
+        self,
+        encoder_name="resnet101",
+        encoder_weights="imagenet",
+        in_channels=3,
+        out_channels=1,
+        mode="binary",
+        threshold=0.5,
+        lr=1e-4,
+    ):
         super().__init__()
         self.save_hyperparameters()
 
