@@ -17,7 +17,6 @@ class System(pl.LightningModule):
         ):
 
         super().__init__()
-
         self.save_hyperparameters()
 
         self.model = smp.Unet(
