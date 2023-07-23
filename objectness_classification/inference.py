@@ -5,15 +5,12 @@ import importlib
 import git
 import matplotlib.pyplot as plt
 import torch
-import numpy as np
-import cv2
 
 git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
-sys.path.append(f"{git_root}/objectness_classification/")
 sys.path.append(f"{git_root}/objectness_classification/datasets")
-from seed import set_seed
 from datamodule import ObjnessClsDataModule
+from seed import set_seed
 
 
 def option_parser():
@@ -32,10 +29,7 @@ def option_parser():
     )
     parser.add_argument(
         '-w', '--model_weight', type=str,
-        default=os.path.join(
-            git_root,
-            "objectness_classification/logs/2023-06-25T19:33:46/unet.pth",
-        ),
+        default="./logs/2023-06-25T19:33:46/unet.pth",
     )
 
     return parser.parse_args()
@@ -58,11 +52,7 @@ def get_test_dataloader(dataset_dir):
         return iter(test_dataloader)
 
 
-def get_model(
-    model_name,
-    weight_path,
-    model_args,
-):
+def get_model(model_name, weight_path, model_args):
     module = importlib.import_module(f'models.{model_name}')
     model = module.System(
         out_channels=model_args['out_channels'],
