@@ -5,7 +5,7 @@ import importlib
 import datetime
 import git
 import torch
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 
 git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")

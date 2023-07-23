@@ -1,5 +1,5 @@
 import os
-import pytorch_lightning as pl
+import lightning as L
 from torch.utils.data import DataLoader
 
 from ego4d import Ego4DObjnessClsDataset
@@ -9,7 +9,7 @@ from pascal_voc2012 import PascalVOC2012Dataset
 from transform import ObjnessClsDataPreprocessor
 
 
-class ObjnessClsDataModule(pl.LightningDataModule):
+class ObjnessClsDataModule(L.LightningDataModule):
     """
     Fetches frames and labeled masks.
         ego4d: 
