@@ -1,0 +1,50 @@
+Carpenter;736
+Bike mechanic;251
+Cooking;864
+Cleaning / laundry;895
+Doing yardwork / shoveling snow;343
+Crafting/knitting/sewing/drawing/painting;924
+jobs related to construction/renovation company (Director of work, tiler, plumber, Electrician, Handyman, etc);693
+Scooter mechanic;249
+Labwork;1
+Potting plants (indoor);55
+Household management - caring for kids;259
+Making Bricks;98
+Maker Lab (making items in different materials, wood plastic and also electronics), some overlap with construction etc. but benefit is all activities take place within a few rooms;76
+Car mechanic;356
+Doing hair/make-up;11
+Blacksmith;92
+Practicing a musical instrument;101
+Working out at home;52
+Playing board games;73
+Car/scooter washing;196
+Bike;20
+Farmer;334
+Attending religious activity;33
+Playing cards;57
+Working at desk;18
+Working in milktea shop;75
+Hosting a party;13
+Baker;142
+Gardening;211
+Fixing something in the home;88
+biology experiments;107
+Fixing PC;19
+Assembling furniture;13
+Walking the dog / pet;69
+Street art;7
+Gardener;32
+Handyman;46
+Golfing;2
+Riding motorcycle;2
+Washing the dog / pet, grooming horse;27
+Assembling a puzzle;3
+Eating;17
+Car - commuting, road trip;42
+not-found;15
+Going to a salon (nail, hair, spa);5
+Going to the gym - exercise machine, class, weights;14
+building lego models / plastic models;21
+Outdoor technical climbing/belaying/rappelling (includes ropework);7
+BasketBall;1
+Grocery shopping indoors;3

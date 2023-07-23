@@ -1,0 +1,49 @@
+Carpenter;736
+Bike mechanic;251
+Cooking;864
+Cleaning / laundry;895
+Doing yardwork / shoveling snow;343
+Crafting/knitting/sewing/drawing/painting;924
+jobs construction/renovation company;693
+Scooter mechanic;249
+Lab;1
+Potting plants;55
+Household management;259
+Making Bricks;98
+Maker Lab construction;76
+Car mechanic;356
+Doing hair;11
+Blacksmith;92
+Practicing musical instrument;101
+Working home;52
+Playing board games;73
+Car/scooter washing;196
+Bike;20
+Farmer;334
+Attending religious activity;33
+Playing cards;57
+Working desk;18
+Working milk tea shop;75
+Hosting party;13
+Baker;142
+Gardening;211
+Fixing something home;88
+biology experiments;107
+Fixing PC;19
+Assembling furniture;13
+Walking dog / pet;69
+Street art;7
+Gardener;32
+Handyman;46
+Golfing;2
+Riding motorcycle;2
+Washing dog / pet, grooming horse;27
+Assembling puzzle;3
+Eating;17
+Car;42
+Going salon;5
+Going gym;14
+building lego models / plastic models;21
+Outdoor technical climbing/belaying/rappelling;7
+basketball;1
+Grocery shopping indoors;3
