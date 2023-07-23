@@ -42,7 +42,8 @@ class System(pl.LightningModule):
         return self.optimizer
 
     def forward(self, x):
-        return self.model(x)
+        out = self.model(x)
+        return out > self.hparams.threshold
 
     def _set_lossfn(self):
         lossfn = smp.losses.DiceLoss(
@@ -84,6 +85,7 @@ class System(pl.LightningModule):
 
     def _calc_metric(self, output, target):
         obj_mask, hand_mask = target[:,0:1,:,:], target[:,1:2,:,:]
+        output = output[:,0:1,:,:]
 
         tp, fp, fn, tn = smp.metrics.get_stats(
             output,

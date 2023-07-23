@@ -18,12 +18,15 @@ def option_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-d', '--dataset_dir',type=str,
-        default=os.path.join(os.path.expanduser('~'), 'Documents/datasets'),
+        default=os.path.join(
+            os.path.expanduser('~'),
+            'Documents/datasets',
+        ),
     )
     parser.add_argument(
         '-m', '--model', type=str,
         default="unet",
-        choices=["unet"]
+        choices=["unet"],
     )
     parser.add_argument('-l', '--log_dir', type=str, default='./logs/')
     parser.add_argument('-e', '--exp_dir', type=str, default='')

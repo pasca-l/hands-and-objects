@@ -1,4 +1,4 @@
 .PHONY: log
 
 log:
-	tensorboard --logdir ./logs
+	poetry run tensorboard --logdir ./logs
