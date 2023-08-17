@@ -8,7 +8,8 @@ from torch.utils.data import Dataset
 git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
 sys.path.append(f"{git_root}/utils/datasets/ego4d")
-from annotation_handler import AnnotationHandler
+from handler import AnnotationHandler
+from extractor import VideoExtractor
 
 
 class Ego4DKeypointEstDataset(Dataset):
@@ -32,6 +33,10 @@ class Ego4DKeypointEstDataset(Dataset):
         handler = AnnotationHandler(dataset_dir, task, phase)
         self.ann_len = len(handler)
         self.man_df, self.ann_df = handler()
+
+        if extract:
+            extractor = VideoExtractor(self.ann_df, dataset_dir)
+            extractor.extract_frames()
 
     def __len__(self):
         return self.ann_len
