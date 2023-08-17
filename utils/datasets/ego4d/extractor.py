@@ -88,20 +88,19 @@ class VideoExtractor:
 
             video_path = os.path.join(self.video_dir, f"{video_uid}.mp4")
             video = cv2.VideoCapture(video_path)
-            for c in range(1, int(video.get(cv2.CAP_PROP_FRAME_COUNT)) + 1):
+
+            for i, c in enumerate(frame_nums):
+                video.set(cv2.CAP_PROP_POS_FRAMES, c)
                 ret, frame = video.read()
                 if ret == False:
                     break
 
-                if c == 1:
-                    save_as = os.path.join(save_dir, "sample.jpg")
-                    cv2.imwrite(save_as, frame)
+                if i == 0:
+                    cv2.imwrite(os.path.join(save_dir, "sample.jpg"), frame)
 
-                if c in frame_nums:
-                    if resize:
-                        frame = cv2.resize(frame, (224, 224))
-                    save_as = os.path.join(save_dir, f"{c}.jpg")
-                    cv2.imwrite(save_as, frame)
+                if resize:
+                    frame = cv2.resize(frame, (224, 224))
+                cv2.imwrite(os.path.join(save_dir, f"{c}.jpg"), frame)
 
             video.release()
 
