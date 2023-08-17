@@ -21,6 +21,11 @@ jupyter = "^1.0.0"
 segmentation-models-pytorch = "^0.3.2"
 
 
+[[tool.poetry.source]]
+name = "torch_cu118"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "explicit"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
