@@ -11,6 +11,7 @@ git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
 sys.path.append(f"{git_root}/keypoint_estimation/datasets")
 from datamodule import KeypointEstDataModule
+from ego4d import Ego4DKeypointEstDataset
 sys.path.append(f"{git_root}/utils/datasets")
 from seed import set_seed
 
@@ -39,6 +40,13 @@ def main():
     args = option_parser()
 
     set_seed()
+
+    Ego4DKeypointEstDataset(
+        args.dataset_dir,
+        extract=True,
+    )
+
+    return
 
     dataset = KeypointEstDataModule(
         dataset_dir=args.dataset_dir,
