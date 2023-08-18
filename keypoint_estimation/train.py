@@ -52,7 +52,7 @@ def main():
     classifier = module.System()
 
     log_id = datetime.datetime.now().isoformat(timespec='seconds')
-    logger = pl.loggers.TensorBoardLogger(
+    logger = L.pytorch.loggers.TensorBoardLogger(
         save_dir=args.log_dir,
         name=args.exp_dir,
         version=log_id,
