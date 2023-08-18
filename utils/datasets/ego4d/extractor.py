@@ -76,33 +76,35 @@ class VideoExtractor:
             except KeyError:
                 continue
 
-        for video_uid, frame_nums in tqdm(
-            frame_dict.items(),
-            desc="Extracting frames",
-        ):
-            if len(frame_nums) == 0:
-                continue
+        with tqdm(frame_dict.items()) as pbar:
+            for video_uid, frame_nums in pbar:
+                pbar.set_description(f"Extracting frames from {video_uid}")
 
-            save_dir = os.path.join(self.frame_dir, video_uid)
-            os.makedirs(save_dir, exist_ok=True)
+                if len(frame_nums) == 0:
+                    continue
 
-            video_path = os.path.join(self.video_dir, f"{video_uid}.mp4")
-            video = cv2.VideoCapture(video_path)
+                save_dir = os.path.join(self.frame_dir, video_uid)
+                os.makedirs(save_dir, exist_ok=True)
 
-            for i, c in enumerate(frame_nums):
-                video.set(cv2.CAP_PROP_POS_FRAMES, c)
-                ret, frame = video.read()
-                if ret == False:
-                    break
+                video_path = os.path.join(self.video_dir, f"{video_uid}.mp4")
+                video = cv2.VideoCapture(video_path)
 
-                if i == 0:
-                    cv2.imwrite(os.path.join(save_dir, "sample.jpg"), frame)
+                for i, c in enumerate(frame_nums):
+                    pbar.set_postfix({"frame": c})
 
-                if resize:
-                    frame = cv2.resize(frame, (224, 224))
-                cv2.imwrite(os.path.join(save_dir, f"{c}.jpg"), frame)
+                    video.set(cv2.CAP_PROP_POS_FRAMES, c)
+                    ret, frame = video.read()
+                    if ret == False:
+                        break
 
-            video.release()
+                    if i == 0:
+                        cv2.imwrite(os.path.join(save_dir, "sample.jpg"), frame)
+
+                    if resize:
+                        frame = cv2.resize(frame, (224, 224))
+                    cv2.imwrite(os.path.join(save_dir, f"{c}.jpg"), frame)
+
+                video.release()
 
     def extract_subclip(self):
         """
