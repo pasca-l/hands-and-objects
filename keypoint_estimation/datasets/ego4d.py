@@ -3,6 +3,7 @@ import sys
 import git
 import cv2
 import math
+import numpy as np
 from torch.utils.data import Dataset
 
 git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
@@ -19,7 +20,7 @@ class Ego4DKeypointEstDataset(Dataset):
         task='fho_oscc-pnr',
         phase='train',
         transform=None,
-        with_info=None,
+        with_info=False,
         extract=False,
         image_level=True,
     ):
@@ -29,6 +30,11 @@ class Ego4DKeypointEstDataset(Dataset):
         self.transform = transform
         self.with_info = with_info
         self.image_level = image_level
+
+        self.classes = {
+            "other": 0,
+            "pnr": 1,
+        }
 
         handler = AnnotationHandler(dataset_dir, task, phase)
         self.ann_len = len(handler)
@@ -43,20 +49,18 @@ class Ego4DKeypointEstDataset(Dataset):
 
     def __getitem__(self, index):
         info = self.ann_df[index]
-        video_uid = info.select("video_uid").item()
+
         frame_nums = self._select_frames(info)
 
-        for i in self.ann_df.iter_rows(named=True):
-            print(i)
-            break
+        frames = self._get_frames(info, frame_nums)
+        labels = self._get_labels(info, frame_nums)
 
-        print(video_uid, frame_nums)
+        return frames, labels
 
-        return info.select("parent_pnr_frame").item()
+    def _get_frames(self, info, frame_nums):
+        video_uid = info.select("video_uid").item()
 
-    def _get_frames(self, video_uid, frame_nums):
         frames = []
-
         for num in frame_nums:
             frame_path = os.path.join(self.frame_dir, video_uid, f"{num}.jpg")
             try:
@@ -68,10 +72,21 @@ class Ego4DKeypointEstDataset(Dataset):
 
             frames.append(frame)
 
-        return frames
+        return np.array(frames)
 
-    def _get_labels(self, video_uid, frame_nums):
+    def _get_labels(self, info, frame_nums, class_num=2):
+        pnr = info.select("parent_pnr_frame").item()
+
         labels = []
+        for num in frame_nums:
+            if num == pnr:
+                label = self.classes["pnr"]
+            else:
+                label = self.classes["other"]
+
+            labels.append(label)
+
+        return np.eye(class_num)[labels]
 
     def _select_frames(self, info):
         frame_nums = []
