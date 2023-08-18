@@ -41,23 +41,16 @@ def main():
 
     set_seed()
 
-    Ego4DKeypointEstDataset(
-        args.dataset_dir,
-        extract=True,
-    )
-
-    return
-
     dataset = KeypointEstDataModule(
         dataset_dir=args.dataset_dir,
         dataset_mode='ego4d',
-        batch_size=1,
+        batch_size=4,
         transform_mode='base',
     )
 
     dataset.setup()
     loader = iter(dataset.train_dataloader())
-    print(next(loader))
+    print(next(loader).shape)
 
     return
 
