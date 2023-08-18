@@ -37,10 +37,20 @@ class KeypointEstDataModule(L.LightningDataModule):
                     transform=self.transform,
                     with_info=self.with_info,
                 )
-                self.val_data = None
+                self.val_data = Ego4DKeypointEstDataset(
+                    dataset_dir=self.dataset_dir,
+                    phase="val",
+                    transform=self.transform,
+                    with_info=self.with_info,
+                )
 
             if stage == "test":
-                self.test_data = None
+                self.test_data = Ego4DKeypointEstDataset(
+                    dataset_dir=self.dataset_dir,
+                    phase="test",
+                    transform=self.transform,
+                    with_info=self.with_info,
+                )
 
             if stage == "predict":
                 self.predict_data = None
@@ -60,5 +70,12 @@ class KeypointEstDataModule(L.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=True,
-            shuffle=True,
+        )
+
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_data,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
