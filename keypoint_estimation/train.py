@@ -27,8 +27,8 @@ def option_parser():
     )
     parser.add_argument(
         '-m', '--model', type=str,
-        default="unet",
-        choices=["unet"],
+        default="resnet",
+        choices=["resnet"],
     )
     parser.add_argument('-l', '--log_dir', type=str, default='./logs/')
     parser.add_argument('-e', '--exp_dir', type=str, default='')
@@ -47,12 +47,6 @@ def main():
         batch_size=4,
         transform_mode='base',
     )
-
-    dataset.setup()
-    loader = iter(dataset.train_dataloader())
-    print(next(loader).shape)
-
-    return
 
     module = importlib.import_module(f'models.{args.model}')
     classifier = module.System()
