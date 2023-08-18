@@ -26,7 +26,7 @@ class Ego4DKeypointEstDataset(Dataset):
     ):
         super().__init__()
 
-        self.frame_dir = os.path.join(dataset_dir, "ego4d/frames")
+        self.frame_dir = os.path.join(dataset_dir, "ego4d/v2/frames")
         self.transform = transform
         self.with_info = with_info
         self.image_level = image_level
