@@ -1,7 +1,6 @@
 import os
 import cv2
 import glob
-import pprint
 from tqdm import tqdm
 
 
@@ -27,8 +26,6 @@ class VideoExtractor:
                 "video_uid", "parent_start_frame", "parent_end_frame",
             ).iter_rows()
 
-        self.find_missing_frames()
-
     def find_missing_videos(self):
         video_paths = glob.glob(f"{self.video_dir}/*")
         videos = [os.path.splitext(os.path.basename(i))[0] for i in video_paths]
@@ -38,7 +35,7 @@ class VideoExtractor:
             if video_id not in videos:
                 missing.add(video_id)
 
-        pprint.pprint(list(missing))
+        return missing
 
     def find_missing_frames(self):
         frame_dict = {}
@@ -74,8 +71,7 @@ class VideoExtractor:
             except KeyError:
                 continue
 
-        pprint.pprint(frame_dict)
-
+        return frame_dict
 
     def extract_frames(self, resize=True):
         """
@@ -85,38 +81,7 @@ class VideoExtractor:
         """
         os.makedirs(self.frame_dir, exist_ok=True)
 
-        frame_dict = {}
-        for video_uid, *frames in tqdm(
-            self.iterator,
-            desc="Finding frames to extract",
-        ):
-            frame_dict.setdefault(video_uid, set())
-
-            if self.mode == "center":
-                [center] = frames
-                frame_dict [video_uid] |= {center}
-            elif self.mode == "range":
-                start_frame, end_frame = frames
-                frame_dict[video_uid] |= \
-                    {i for i in range(start_frame, end_frame + 1)}
-
-        existing_frame_dirs = [
-            d for d in os.listdir(self.frame_dir)
-            if os.path.isdir(os.path.join(self.frame_dir, d))
-        ]
-        for d in tqdm(
-            existing_frame_dirs,
-            desc="Excluding existing frames to extract",
-        ):
-            try:
-                frame_dict[d] -= {
-                    int(f[:-4]) for f in os.listdir(
-                        os.path.join(self.frame_dir, d)
-                    )
-                    if int(f[:-4] != "sample")
-                }
-            except KeyError:
-                continue
+        frame_dict = self.find_missing_frames()
 
         with tqdm(frame_dict.items()) as pbar:
             for video_uid, frame_nums in pbar:
@@ -129,6 +94,8 @@ class VideoExtractor:
                 os.makedirs(save_dir, exist_ok=True)
 
                 video_path = os.path.join(self.video_dir, f"{video_uid}.mp4")
+                if not os.path.exists(video_path):
+                    raise Exception(f"Video does not exist at: {video_path}")
                 video = cv2.VideoCapture(video_path)
 
                 for i, c in enumerate(sorted(frame_nums)):
