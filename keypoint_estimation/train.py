@@ -41,6 +41,15 @@ def main():
 
     set_seed()
 
+    dataset = Ego4DKeypointEstDataset(
+        args.dataset_dir,
+        extract=True,
+    )
+
+    print(dataset.ann_df.select("video_uid").unique()[0].item())
+
+    return
+
     dataset = KeypointEstDataModule(
         dataset_dir=args.dataset_dir,
         dataset_mode='ego4d',
