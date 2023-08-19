@@ -4,7 +4,7 @@ import polars as pl
 
 
 class AnnotationHandler:
-    def __init__(self, dataset_dir, task_name, phase, data_as="dataframe"):
+    def __init__(self, dataset_dir, task_name, phase):
         data_dir = os.path.join(dataset_dir, "ego4d/v2/annotations")
         self.manifest_file = os.path.join(data_dir, "manifest.csv")
         self.ann_file = {
@@ -12,21 +12,20 @@ class AnnotationHandler:
             "val": os.path.join(data_dir, f"{task_name}_val.json")
         }
         self.phase = phase
-        self.data_as = data_as
 
-    def __call__(self):
-        if self.data_as == "dataframe":
-            df_train = self._unpack_json_to_df("train")
-            df_val = self._unpack_json_to_df("val")
+    def __call__(self, with_center=False):
+        df_train = self._unpack_json_to_df("train")
+        df_val = self._unpack_json_to_df("val")
 
-            df = self._create_split_with_test(df_train, df_val)[self.phase]
+        df = self._create_split_with_test(df_train, df_val)[self.phase]
+        if with_center:
+            df = self._add_column_for_center_value(df)
 
-            return self._unpack_manifest_to_df(), df
+        return self._unpack_manifest_to_df(), df
 
     def __len__(self):
-        if self.data_as == "dataframe":
-            _, df = self.__call__()
-            return df.select(pl.count()).item()
+        _, df = self.__call__()
+        return df.select(pl.count()).item()
 
     def _unpack_manifest_to_df(self):
         return pl.read_csv(self.manifest_file)
@@ -45,7 +44,9 @@ class AnnotationHandler:
     def _create_split_with_test(self, df_train, df_val):
         df_full = pl.concat([df_train, df_val], how="align")
 
-        test_vids = df_full.select("video_uid").unique(
+        test_vids = df_full.select(
+            "video_uid"
+        ).unique(
             maintain_order=True,
         ).sample(
             fraction=0.1, seed=42
@@ -58,3 +59,18 @@ class AnnotationHandler:
         }
 
         return dfs
+
+    def _add_column_for_center_value(self, df):
+        df_with_center = df.with_columns(
+            pl.when(
+                pl.col("state_change") == True
+            ).then(
+                pl.col("parent_pnr_frame")
+            ).otherwise(
+                ((pl.col("parent_end_frame") - \
+                  pl.col("parent_start_frame")) / 2).floor() + \
+                pl.col("parent_start_frame")
+            ).cast(pl.Int64).alias("center")
+        )
+
+        return df_with_center

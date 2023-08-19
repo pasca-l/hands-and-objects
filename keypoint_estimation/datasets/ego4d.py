@@ -2,7 +2,6 @@ import os
 import sys
 import git
 import cv2
-import math
 import numpy as np
 from torch.utils.data import Dataset
 
@@ -38,7 +37,7 @@ class Ego4DKeypointEstDataset(Dataset):
 
         handler = AnnotationHandler(dataset_dir, task, phase)
         self.ann_len = len(handler)
-        self.man_df, self.ann_df = handler()
+        self.man_df, self.ann_df = handler(with_center=self.image_level)
 
         if extract:
             extractor = VideoExtractor(self.ann_df, dataset_dir)
@@ -89,21 +88,19 @@ class Ego4DKeypointEstDataset(Dataset):
 
             labels.append(label)
 
-        return np.eye(class_num)[labels]
+        return np.array(*labels)
 
     def _select_frames(self, info):
         frame_nums = []
 
-        start = info.select("parent_start_frame").item()
-        end = info.select("parent_end_frame").item()
-        pnr = info.select("parent_pnr_frame").item()
-
         if self.image_level:
-            if info.select("state_change").item():
-                frame_num = pnr
-            else:
-                frame_num = math.floor((end - start) / 2) + start
-
+            frame_num = info.select("center").item()
             frame_nums.append(frame_num)
+
+        # else:
+        #     start = info.select("parent_start_frame").item()
+        #     end = info.select("parent_end_frame").item()
+
+        #     frame_nums.append(*[i for i in range(start, end + 1)])
 
         return frame_nums
