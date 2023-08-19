@@ -53,14 +53,16 @@ class System(L.LightningModule):
 
     def _shared_step(self, batch, phase="train"):
         frames, labels = batch[0], batch[1]
+
+        frames = frames[:,0,:,:,:].permute((0,3,1,2)).float()
         logits = self.model(frames)
 
         loss = self.lossfn(logits, labels)
-        metrics = self._calc_metrics(logits, labels)
+        # metrics = self._calc_metrics(logits, labels)
 
         self.log(f"loss/{phase}", loss, on_step=True, on_epoch=True)
-        metric_dict = {f"{k}/{phase}":v for k,v in metrics.items()}
-        self.log_dict(metric_dict, on_step=True, on_epoch=True)
+        # metric_dict = {f"{k}/{phase}":v for k,v in metrics.items()}
+        # self.log_dict(metric_dict, on_step=True, on_epoch=True)
 
     def _calc_metrics(self, output, target):
         accuracy = tm.functional.accuracy(output, target)
