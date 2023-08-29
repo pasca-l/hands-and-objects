@@ -41,14 +41,15 @@ def main():
 
     set_seed()
 
-    dataset = Ego4DKeypointEstDataset(
-        args.dataset_dir,
-        extract=True,
-    )
+    # dataset = Ego4DKeypointEstDataset(
+    #     args.dataset_dir,
+    #     phase="val",
+    #     # extract=True,
+    # )
 
-    print(dataset.ann_df.select("video_uid").unique()[0].item())
+    # print(dataset.ann_df.select("video_uid").unique())
 
-    return
+    # return
 
     dataset = KeypointEstDataModule(
         dataset_dir=args.dataset_dir,
@@ -59,6 +60,15 @@ def main():
 
     module = importlib.import_module(f'models.{args.model}')
     classifier = module.System()
+
+    # apply trained weight to model
+    param = torch.load("./logs/2cls/unet.pth", map_location=torch.device('cpu'))#["state_dict"]
+    new_param = {}
+    for k in param.keys():
+        # if "model.unet.encoder" in k:
+        if "encoder" in k:
+            new_param[k[8:]] = param[k]
+    classifier.model.load_state_dict(new_param, strict=False)
 
     log_id = datetime.datetime.now().isoformat(timespec='seconds')
     logger = L.pytorch.loggers.TensorBoardLogger(
