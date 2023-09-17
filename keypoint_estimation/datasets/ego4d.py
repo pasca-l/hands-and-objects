@@ -35,9 +35,9 @@ class Ego4DKeypointEstDataset(Dataset):
             "pnr": 1,
         }
 
-        handler = AnnotationHandler(dataset_dir, task, phase)
+        handler = AnnotationHandler(dataset_dir, task, phase, image_level)
         self.ann_len = len(handler)
-        self.man_df, self.ann_df = handler(with_center=self.image_level)
+        self.ann_df = handler()
 
         if extract:
             extractor = VideoExtractor(self.ann_df, dataset_dir)
@@ -79,6 +79,7 @@ class Ego4DKeypointEstDataset(Dataset):
         return np.array(frames)
 
     def _get_labels(self, info, frame_nums, class_num=2):
+        # TODO: video level label
         pnr = info.select("parent_pnr_frame").item()
 
         labels = []
@@ -96,13 +97,13 @@ class Ego4DKeypointEstDataset(Dataset):
         frame_nums = []
 
         if self.image_level:
-            frame_num = info.select("center").item()
+            frame_num = info.select("center_frame").item()
             frame_nums.append(frame_num)
 
-        # else:
-        #     start = info.select("parent_start_frame").item()
-        #     end = info.select("parent_end_frame").item()
+        else:
+            start = info.select("segment_start_frame").item()
+            end = info.select("segment_end_frame").item()
 
-        #     frame_nums.append(*[i for i in range(start, end + 1)])
+            frame_nums.extend([i for i in range(start, end + 1)])
 
         return frame_nums

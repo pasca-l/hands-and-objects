@@ -9,7 +9,7 @@ class VideoExtractor:
         self,
         info,
         dataset_dir,
-        mode="center", # ["center", "range"]
+        mode="all", # ["center", "range", "all"]
     ):
         data_dir = os.path.join(dataset_dir, "ego4d/v2")
         self.video_dir = os.path.join(data_dir, "full_scale")
@@ -19,11 +19,17 @@ class VideoExtractor:
 
         if self.mode == "center":
             self.iterator = info.select(
-                "video_uid", "center",
+                "video_uid", "center_frame",
             ).iter_rows()
         elif self.mode == "range":
             self.iterator = info.select(
                 "video_uid", "parent_start_frame", "parent_end_frame",
+            ).iter_rows()
+        elif self.mode == "all":
+            self.iterator = info.select(
+                "video_uid", "parent_frame_num",
+            ).unique(
+                maintain_order=True,
             ).iter_rows()
 
     def find_missing_videos(self):
@@ -47,11 +53,15 @@ class VideoExtractor:
 
             if self.mode == "center":
                 [center] = frames
-                frame_dict [video_uid] |= {center}
+                frame_dict[video_uid] |= {center}
             elif self.mode == "range":
                 start_frame, end_frame = frames
                 frame_dict[video_uid] |= \
                     {i for i in range(start_frame, end_frame + 1)}
+            elif self.mode == "all":
+                [frame_num] = frames
+                frame_dict[video_uid] |= \
+                    {i for i in range(1, frame_num + 1)}
 
         existing_frame_dirs = [
             d for d in os.listdir(self.frame_dir)
