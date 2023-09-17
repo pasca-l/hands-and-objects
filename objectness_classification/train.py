@@ -11,6 +11,7 @@ git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
 sys.path.append(f"{git_root}/objectness_classification/datasets")
 from datamodule import ObjnessClsDataModule
+sys.path.append(f"{git_root}/utils/datasets")
 from seed import set_seed
 
 
@@ -25,8 +26,8 @@ def option_parser():
     )
     parser.add_argument(
         '-m', '--model', type=str,
-        default="unet",
-        choices=["unet"],
+        default="transunet",
+        choices=["unet", "transunet"],
     )
     parser.add_argument('-l', '--log_dir', type=str, default='./logs/')
     parser.add_argument('-e', '--exp_dir', type=str, default='')

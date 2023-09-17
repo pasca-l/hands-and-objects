@@ -12,8 +12,8 @@ class System(L.LightningModule):
         self,
         encoder_name="resnet101",
         encoder_weights="imagenet",
-        in_channel=3,
-        out_channel=1,  # [1, 2]
+        in_channels=3,
+        out_channels=1,  # [1, 2]
         mode="binary",  # ["binary", "multilabel"]
         threshold=0.5,
         lr=1e-4,
@@ -24,8 +24,8 @@ class System(L.LightningModule):
         self.model = TransUNet(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
-            in_channel=in_channel,
-            out_channel=out_channel,
+            in_channel=in_channels,
+            out_channel=out_channels,
         )
         self.lossfn = self._set_lossfn()
         self.optimizer = self._set_optimizers()
