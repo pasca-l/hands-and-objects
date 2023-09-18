@@ -5,7 +5,7 @@ import importlib
 import datetime
 import git
 import torch
-import lightning.pytorch as pl
+import lightning as L
 
 git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
@@ -51,7 +51,7 @@ def main():
     classifier = module.System()
 
     log_id = datetime.datetime.now().isoformat(timespec='seconds')
-    logger = pl.loggers.TensorBoardLogger(
+    logger = L.pytorch.loggers.TensorBoardLogger(
         save_dir=args.log_dir,
         name=args.exp_dir,
         version=log_id,
@@ -59,7 +59,7 @@ def main():
     )
     logger.log_hyperparams(dataset.hparams | classifier.hparams)
 
-    trainer = pl.Trainer(
+    trainer = L.Trainer(
         accelerator='auto',
         devices='auto',
         max_epochs=10,
