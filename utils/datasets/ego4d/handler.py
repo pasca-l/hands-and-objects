@@ -7,7 +7,7 @@ import polars as pl
 class AnnotationHandler:
     def __init__(self, dataset_dir, task_name, phase, image_level):
         data_dir = os.path.join(dataset_dir, "ego4d/v2/annotations")
-        self.manifest_file = os.path.join(data_dir, "manifest.csv")
+        self.manifest_file = os.path.join(dataset_dir, "ego4d/v2/manifest.csv")
         self.ann_file = {
             "train": os.path.join(data_dir, f"{task_name}_train.json"),
             "val": os.path.join(data_dir, f"{task_name}_val.json")
