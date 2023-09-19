@@ -9,7 +9,6 @@ git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
 sys.path.append(f"{git_root}/utils/datasets/ego4d")
 from handler import AnnotationHandler
-from extractor import VideoExtractor
 
 
 class Ego4DKeypointEstDataset(Dataset):
@@ -20,12 +19,12 @@ class Ego4DKeypointEstDataset(Dataset):
         phase='train',
         transform=None,
         with_info=False,
-        extract=False,
         image_level=True,
     ):
         super().__init__()
 
         self.frame_dir = os.path.join(dataset_dir, "ego4d/v2/frames")
+        self.video_dir = os.path.join(dataset_dir, "ego4d/v2/full_scale")
         self.transform = transform
         self.with_info = with_info
         self.image_level = image_level
@@ -38,10 +37,6 @@ class Ego4DKeypointEstDataset(Dataset):
         handler = AnnotationHandler(dataset_dir, task, phase, image_level)
         self.ann_len = len(handler)
         self.ann_df = handler()
-
-        if extract:
-            extractor = VideoExtractor(self.ann_df, dataset_dir)
-            extractor.extract_frames()
 
     def __len__(self):
         return self.ann_len
@@ -66,34 +61,49 @@ class Ego4DKeypointEstDataset(Dataset):
 
         frames = []
         for num in frame_nums:
+            # get image file if frame exists, if not extract frame from video
             frame_path = os.path.join(self.frame_dir, video_uid, f"{num}.jpg")
-            try:
+            video_path = os.path.join(self.video_dir, f"{video_uid}.mp4")
+
+            if os.path.exists(frame_path):
                 frame = cv2.imread(frame_path)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame = cv2.resize(frame, (224, 224))
-            except:
-                raise Exception(f"Image does not exist at: {frame_path}")
+
+            elif os.path.exists(video_path):
+                video = cv2.VideoCapture(video_path)
+                video.set(cv2.CAP_PROP_POS_FRAMES, num)
+                ret, frame = video.read()
+                if ret == False:
+                    raise Exception(f"Cannot read frame {num} at: {video_path}")
+                video.release()
+
+            else:
+                raise Exception(f"No path at: {frame_path} or {video_path}")
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.resize(frame, (224, 224))
 
             frames.append(frame)
 
         return np.array(frames)
 
     def _get_labels(self, info, frame_nums, class_num=2):
-        # TODO: video level label
         pnr = info.select("parent_pnr_frame").item()
 
-        labels = []
-        for num in frame_nums:
-            if num == pnr:
-                label = self.classes["pnr"]
-            else:
-                label = self.classes["other"]
+        if self.image_level:
+            labels = np.where(
+                frame_nums == pnr,
+                self.classes["pnr"],
+                self.classes["other"],
+            )
 
-            labels.append(label)
+        else:
+            labels = np.zeros_like(frame_nums)
+            nearest_pnr_idx = [np.argmin(np.abs(frame_nums - i)) for i in pnr]
+            labels[nearest_pnr_idx] = self.classes["pnr"]
 
-        return np.array(*labels)
+        return labels
 
-    def _select_frames(self, info):
+    def _select_frames(self, info, sample=16):
         frame_nums = []
 
         if self.image_level:
@@ -103,7 +113,6 @@ class Ego4DKeypointEstDataset(Dataset):
         else:
             start = info.select("segment_start_frame").item()
             end = info.select("segment_end_frame").item()
+            frame_nums.extend(np.linspace(start, end, sample, dtype=int))
 
-            frame_nums.extend([i for i in range(start, end + 1)])
-
-        return frame_nums
+        return np.array(frame_nums)
