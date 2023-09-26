@@ -54,6 +54,25 @@ class System(L.LightningModule):
         self.hparams.update({k:v.__class__.__name__ for k,v in opts.items()})
         return opts
 
+    def _shared_step(self, batch, phase="train"):
+        # expected input torch.Size([1, 16, 3, 224, 224])
+        # expected output torch.Size([1, 16])
+        frames, labels = batch[0], batch[1]
+
+        logits = self.model(frames)
+
+        loss = self.lossfn(logits, labels)
+        metrics = self._calc_metrics(logits, labels)
+
+        self.log(f"loss/{phase}", loss, on_step=True, on_epoch=True)
+        metric_dict = {f"{k}/{phase}":v for k,v in metrics.items()}
+        self.log_dict(metric_dict, on_step=True, on_epoch=True)
+
+    def _calc_metrics(self, output, target):
+        return {
+            "accuracy": 0,
+        }
+
 
 class VideoMAE(nn.Module):
     def __init__(
@@ -61,7 +80,6 @@ class VideoMAE(nn.Module):
         out_channel,
     ):
         super().__init__()
-        self.save_hyperparameters()
 
         config = transformers.VideoMAEConfig()
         self.videomae = transformers.VideoMAEModel(config)
@@ -74,11 +92,3 @@ class VideoMAE(nn.Module):
         x = self.classifier(x)
 
         return x
-
-
-if __name__ == "__main__":
-    import torch
-    input = torch.rand(1, 16, 3, 224, 224)
-
-    system = System()
-    print(system(input).shape)

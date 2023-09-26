@@ -86,7 +86,7 @@ class Ego4DKeypointEstDataset(Dataset):
 
         return np.array(frames)
 
-    def _get_labels(self, info, frame_nums, class_num=2):
+    def _get_labels(self, info, frame_nums):
         pnr = info.select("parent_pnr_frame").item()
 
         if self.image_level:

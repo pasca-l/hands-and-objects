@@ -14,6 +14,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         batch_size=4,
         transform_mode='base',
         with_info=False,
+        image_level=True,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -22,6 +23,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         self.dataset_mode = dataset_mode
         self.batch_size = batch_size
         self.with_info = with_info
+        self.image_level = image_level
 
         self.num_workers=os.cpu_count()
 
@@ -36,12 +38,14 @@ class KeypointEstDataModule(L.LightningDataModule):
                     dataset_dir=self.dataset_dir,
                     transform=self.transform,
                     with_info=self.with_info,
+                    image_level=self.image_level,
                 )
                 self.val_data = Ego4DKeypointEstDataset(
                     dataset_dir=self.dataset_dir,
                     phase="val",
                     transform=self.transform,
                     with_info=self.with_info,
+                    image_level=self.image_level,
                 )
 
             if stage == "test":
@@ -50,6 +54,7 @@ class KeypointEstDataModule(L.LightningDataModule):
                     phase="test",
                     transform=self.transform,
                     with_info=self.with_info,
+                    image_level=self.image_level,
                 )
 
             if stage == "predict":
