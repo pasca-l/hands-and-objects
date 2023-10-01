@@ -7,11 +7,15 @@ class KeypointEstDataPreprocessor:
         self.transform_mode = transform_mode
         self.label_mode = label_mode
 
-    def __call__(self, frame, label):
-        frame = self._frame_transform(frame)
+    def __call__(self, frames, label):
+        frame_num, _, _, _ = frames.shape
+
+        frames = torch.stack(
+            [self._frame_transform(frames[i,:,:,:]) for i in range(frame_num)]
+        )
         label = self._label_transform(label)
 
-        return frame, label
+        return frames, label
 
     def _frame_transform(self, frame):
         if self.transform_mode == "base":
