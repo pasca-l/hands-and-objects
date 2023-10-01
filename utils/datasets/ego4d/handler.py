@@ -1,11 +1,12 @@
 import os
 import json
+import math
 import numpy as np
 import polars as pl
 
 
 class AnnotationHandler:
-    def __init__(self, dataset_dir, task_name, phase, image_level):
+    def __init__(self, dataset_dir, task_name, phase, selection):
         data_dir = os.path.join(dataset_dir, "ego4d/v2/annotations")
         self.manifest_file = os.path.join(data_dir, "manifest.csv")
         self.ann_file = {
@@ -13,20 +14,22 @@ class AnnotationHandler:
             "val": os.path.join(data_dir, f"{task_name}_val.json")
         }
         self.phase = phase
-        self.image_level = image_level
+        self.selection = selection
 
     def __call__(self):
         df_train = self._unpack_json_to_df("train")
         df_val = self._unpack_json_to_df("val")
 
-        df = self._create_split(df_train, df_val)[self.phase]
+        df_full = pl.concat([df_train, df_val], how="align")
+        df = self._create_split(df_full)[self.phase]
 
-        if self.image_level:
+        if self.selection == "center":
             df = self._add_center_frame_column(df)
             return df
-        else:
+
+        elif self.selection in ["segsec", "segratio"]:
             df = self._add_parent_num_frames_column(df)
-            df = self._format_ann_to_video_segments(df)
+            df = self._format_ann_to_video_segments(df, self.selection)
             return df
 
     def __len__(self):
@@ -47,9 +50,7 @@ class AnnotationHandler:
 
         return df
 
-    def _create_split(self, df_train, df_val):
-        df_full = pl.concat([df_train, df_val], how="align")
-
+    def _create_split(self, df_full):
         vids = df_full.select(
             "video_uid"
         ).unique(
@@ -82,6 +83,7 @@ class AnnotationHandler:
             "train": df_full.join(train_vids, on="video_uid", how="semi"),
             "val": df_full.join(val_vids, on="video_uid", how="semi"),
             "test": df_full.join(test_vids, on="video_uid", how="semi"),
+            "all": df_full,
         }
 
         return dfs
@@ -115,10 +117,13 @@ class AnnotationHandler:
 
         return df_with_total_num_frames
 
-    def _format_ann_to_video_segments(self, df, seg_sec=8, fps=30):
+    def _format_ann_to_video_segments(
+        self, df, selection, seg_sec=8, seg_ratio=100, fps=30
+    ):
         video_uids = []
         parent_frame_num = []
         segment_start_frame = []
+        segment_end_frame = []
         keyframes = []
 
         iterator = df.select(
@@ -144,32 +149,36 @@ class AnnotationHandler:
                 )
             ).drop_nulls().to_numpy().flatten()
 
-            start_frames = [
-                i for i in range(1, frame_num-seg_sec*fps, seg_sec*fps)
-            ]
+            if selection == "segsec":
+                step = seg_sec * fps
+            elif selection == "segratio":
+                step = math.ceil(frame_num / seg_ratio)
+
+            start_frames = [i for i in range(1, frame_num - step, step)]
+            end_frames = [i + step - 1 for i in start_frames]
 
             # recording values into lists
             record_num = len(start_frames)
             video_uids.extend([vid for _ in range(record_num)])
             parent_frame_num.extend([frame_num for _ in range(record_num)])
             keyframes.extend([
-                np.where((pnr_frames > f) & (pnr_frames <= f+seg_sec*fps))[0]
+                pnr_frames[np.where((pnr_frames >= f) & (pnr_frames < f+step))]
                 for f in start_frames
             ])
             segment_start_frame.extend(start_frames)
+            segment_end_frame.extend(end_frames)
 
         df = pl.DataFrame({
             "video_uid": video_uids,
             "parent_pnr_frame": keyframes,
             "parent_frame_num": parent_frame_num,
             "segment_start_frame": segment_start_frame,
-        }).with_columns(
-            (
-                pl.col("segment_start_frame") + seg_sec * fps - 1
-            ).alias("segment_end_frame"),
-            # pl.when(
-            #     pl.col("parent_pnr_frame").list.lengths() == 0
-            # ).then(False).otherwise(True).alias("state_change")
-        )
+            "segment_end_frame": segment_end_frame,
+        })
+        # .with_columns(
+        #     pl.when(
+        #         pl.col("parent_pnr_frame").list.lengths() == 0
+        #     ).then(False).otherwise(True).alias("state_change")
+        # )
 
         return df

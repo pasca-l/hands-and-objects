@@ -19,7 +19,8 @@ class Ego4DKeypointEstDataset(Dataset):
         phase='train',
         transform=None,
         with_info=False,
-        image_level=True,
+        selection='center',  #['center', 'segsec', 'segratio'],
+        sample_num=16,
     ):
         super().__init__()
 
@@ -27,14 +28,15 @@ class Ego4DKeypointEstDataset(Dataset):
         self.video_dir = os.path.join(dataset_dir, "ego4d/v2/full_scale")
         self.transform = transform
         self.with_info = with_info
-        self.image_level = image_level
+        self.selection = selection
+        self.sample = 1 if selection == 'center' else sample_num
 
         self.classes = {
             "other": 0,
             "pnr": 1,
         }
 
-        handler = AnnotationHandler(dataset_dir, task, phase, image_level)
+        handler = AnnotationHandler(dataset_dir, task, phase, selection)
         self.ann_len = len(handler)
         self.ann_df = handler()
 
@@ -49,7 +51,7 @@ class Ego4DKeypointEstDataset(Dataset):
         frames = self._get_frames(info, frame_nums)
         labels = self._get_labels(info, frame_nums)
 
-        frames, labels = self.transform(frames[0,:,:,:], labels)
+        frames, labels = self.transform(frames, labels)
 
         if self.with_info:
             return frames, labels, info
@@ -62,19 +64,20 @@ class Ego4DKeypointEstDataset(Dataset):
         frames = []
         for num in frame_nums:
             # get image file if frame exists, if not extract frame from video
+            # NOTE: cv2.VideoCapture cannot be used with parallel computing
             frame_path = os.path.join(self.frame_dir, video_uid, f"{num}.jpg")
             video_path = os.path.join(self.video_dir, f"{video_uid}.mp4")
 
             if os.path.exists(frame_path):
                 frame = cv2.imread(frame_path)
 
-            elif os.path.exists(video_path):
-                video = cv2.VideoCapture(video_path)
-                video.set(cv2.CAP_PROP_POS_FRAMES, num)
-                ret, frame = video.read()
-                if ret == False:
-                    raise Exception(f"Cannot read frame {num} at: {video_path}")
-                video.release()
+            # elif os.path.exists(video_path):
+            #     video = cv2.VideoCapture(video_path)
+            #     video.set(cv2.CAP_PROP_POS_FRAMES, num)
+            #     ret, frame = video.read()
+            #     if ret == False:
+            #         raise Exception(f"Cannot read frame {num} at: {video_path}")
+            #     video.release()
 
             else:
                 raise Exception(f"No path at: {frame_path} or {video_path}")
@@ -89,30 +92,30 @@ class Ego4DKeypointEstDataset(Dataset):
     def _get_labels(self, info, frame_nums):
         pnr = info.select("parent_pnr_frame").item()
 
-        if self.image_level:
+        if self.selection == "center":
             labels = np.where(
                 frame_nums == pnr,
                 self.classes["pnr"],
                 self.classes["other"],
             )
 
-        else:
+        elif self.selection in ["segsec", "segratio"]:
             labels = np.zeros_like(frame_nums)
             nearest_pnr_idx = [np.argmin(np.abs(frame_nums - i)) for i in pnr]
             labels[nearest_pnr_idx] = self.classes["pnr"]
 
         return labels
 
-    def _select_frames(self, info, sample=16):
+    def _select_frames(self, info):
         frame_nums = []
 
-        if self.image_level:
+        if self.selection == "center":
             frame_num = info.select("center_frame").item()
             frame_nums.append(frame_num)
 
-        else:
+        elif self.selection in ["segsec", "segratio"]:
             start = info.select("segment_start_frame").item()
             end = info.select("segment_end_frame").item()
-            frame_nums.extend(np.linspace(start, end, sample, dtype=int))
+            frame_nums.extend(np.linspace(start, end, self.sample, dtype=int))
 
         return np.array(frame_nums)

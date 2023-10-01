@@ -45,7 +45,8 @@ def main():
         dataset_mode='ego4d',
         batch_size=4,
         transform_mode='base',
-        image_level=False,
+        selection='segsec',
+        sample_num=16,
     )
 
     module = importlib.import_module(f'models.{args.model}')
