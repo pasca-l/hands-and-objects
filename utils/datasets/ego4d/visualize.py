@@ -1,7 +1,70 @@
+import os
 import json
 import numpy as np
 import polars as plr
+import cv2
 from PIL import Image
+
+from handler import AnnotationHandler
+
+
+class Visualizer:
+    def __init__(self, dataset_dir):
+        self.dataset_dir = dataset_dir
+
+        handler = AnnotationHandler(
+            dataset_dir=dataset_dir,
+            task_name="fho_oscc-pnr",
+            phase="all",
+            selection="center",
+        )
+        self.df_full = handler()
+
+    def create_video_with_pnr_annotation(
+        self, video_uid, save_as, fps_ratio=2
+    ):
+        pnr_frames = self.df_full.filter(
+            plr.col("video_uid") == video_uid
+        ).select(
+            "center_frame"
+        ).to_numpy().flatten()
+
+        video_dir = os.path.join(self.dataset_dir, "ego4d/v2/full_scale")
+        video_path = os.path.join(video_dir, f"{video_uid}.mp4")
+
+        video = cv2.VideoCapture(video_path)
+        fps = video.get(cv2.CAP_PROP_FPS)
+        v_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        v_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        v_size = (v_width, v_height)
+
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter(save_as, fourcc, fps // fps_ratio, v_size)
+
+        for i in range(int(video.get(cv2.CAP_PROP_FRAME_COUNT))):
+            ret, frame = video.read()
+            if ret == False:
+                break
+
+            if i in pnr_frames:
+                h, w, _ = frame.shape
+                frame = cv2.rectangle(frame, (0,0), (w,h), (0,0,2), 3)
+            writer.write(frame)
+
+        writer.release()
+        video.release()
+
+
+def vis():
+    # pnr at 179
+    vid = "a7bffd05-bb79-45cd-8bd1-8c30c5553ddf"
+    v = Visualizer(
+        dataset_dir="",
+    )
+    v.create_video_with_pnr_annotation(
+        video_uid=vid,
+        save_as="./output.mp4",
+    )
 
 
 class SegmentationVisualizer:
@@ -89,4 +152,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    vis()
