@@ -53,11 +53,15 @@ class System(L.LightningModule):
         return opts
 
     def _shared_step(self, batch, phase="train"):
+        # frames: torch.Size([b, 1, ch, w, h])
+        # labels: torch.Size([b, 1])
         frames, labels = batch[0], batch[1]
+        frames = frames[:,0,:,:,:].float()
+        labels = labels[:,0]
 
-        # frames = frames[:,0,:,:,:].permute((0,3,1,2)).float()
+        # expected frames: torch.Size([b, ch, w, h]) as double
+        # expected labels: torch.Size([b])
         logits = self.model(frames)
-
         loss = self.lossfn(logits, labels)
         # metrics = self._calc_metrics(logits, labels)
 
@@ -73,8 +77,3 @@ class System(L.LightningModule):
         return {
             "accuracy": accuracy,
         }
-
-
-if __name__ == "__main__":
-    system = System()
-    print(system.model)

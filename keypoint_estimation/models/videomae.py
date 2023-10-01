@@ -55,18 +55,25 @@ class System(L.LightningModule):
         return opts
 
     def _shared_step(self, batch, phase="train"):
-        # expected input torch.Size([1, 16, 3, 224, 224])
-        # expected output torch.Size([1, 16])
+        # frames: torch.Size([b, frame_num, ch, w, h])
+        # labels: torch.Size([b, frame_num])
         frames, labels = batch[0], batch[1]
+        frames = frames.float()
+        labels = labels.float()
 
+        # expected frames: torch.Size([b, frame_num, ch, w, h]) as double
         logits = self.model(frames)
 
+        # expected labels: torch.Size([b, frame_num]) as floating point
+        # expected logits: torch.Size([b, frame_num])
         loss = self.lossfn(logits, labels)
         metrics = self._calc_metrics(logits, labels)
 
         self.log(f"loss/{phase}", loss, on_step=True, on_epoch=True)
         metric_dict = {f"{k}/{phase}":v for k,v in metrics.items()}
         self.log_dict(metric_dict, on_step=True, on_epoch=True)
+
+        return loss
 
     def _calc_metrics(self, output, target):
         return {
