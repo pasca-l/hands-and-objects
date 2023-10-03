@@ -10,7 +10,6 @@ git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
 sys.path.append(f"{git_root}/utils/datasets/ego4d")
 from json_handler import JsonHandler
-from video_extractor import Extractor
 
 
 class Ego4DObjnessClsDataset(Dataset):
@@ -22,16 +21,11 @@ class Ego4DObjnessClsDataset(Dataset):
         transform=None,
         with_info=False,
         label_mode='corners',  # ['corners', 'COCO']
-        extract=False,
     ):
         super().__init__()
 
         json_handler = JsonHandler(dataset_dir, task, phase)
         self.flatten_json = json_handler()
-
-        if extract:
-            extractor = Extractor(dataset_dir, task)
-            extractor.extract_frame_as_image(self.flatten_json)
 
         self.frame_dir = os.path.join(dataset_dir, "ego4d/frames")
         self.transform = transform

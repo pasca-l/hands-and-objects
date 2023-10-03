@@ -181,10 +181,3 @@ class TransUNet(nn.Module):
         x = self.segmentation_head(x)
 
         return x
-
-
-if __name__ == "__main__":
-    input = torch.rand(1, 3, 224, 224)
-
-    model = TransUNet()
-    print(model(input).shape)
