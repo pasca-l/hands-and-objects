@@ -82,8 +82,8 @@ class Ego4DKeypointEstDataset(Dataset):
             else:
                 raise Exception(f"No path at: {frame_path} or {video_path}")
 
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = cv2.resize(frame, (224, 224))
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             frames.append(frame)
 
