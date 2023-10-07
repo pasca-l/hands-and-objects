@@ -16,21 +16,14 @@ class AnnotationHandler:
         self.phase = phase
         self.selection = selection
 
-    def __call__(self):
         df_train = self._unpack_json_to_df("train")
         df_val = self._unpack_json_to_df("val")
+        self.df_full = pl.concat([df_train, df_val], how="align")
 
-        df_full = pl.concat([df_train, df_val], how="align")
-        df = self._create_split(df_full)[self.phase]
-
-        if self.selection == "center":
-            df = self._add_center_frame_column(df)
-            return df
-
-        elif self.selection in ["segsec", "segratio"]:
-            df = self._add_parent_num_frames_column(df)
-            df = self._format_ann_to_video_segments(df, self.selection)
-            return df
+    def __call__(self):
+        df = self._process_df(self.df_full)
+        df = self._create_split(df)[self.phase]
+        return df
 
     def __len__(self):
         df = self.__call__()
@@ -50,8 +43,18 @@ class AnnotationHandler:
 
         return df
 
-    def _create_split(self, df_full):
-        vids = df_full.select(
+    def _process_df(self, df):
+        if self.selection == "center":
+            df = self._add_center_frame_column(df)
+
+        elif self.selection in ["segsec", "segratio"]:
+            df = self._add_parent_num_frames_column(df)
+            df = self._format_ann_to_video_segments(df, self.selection)
+
+        return df
+
+    def _create_split(self, df):
+        vids = df.select(
             "video_uid"
         ).unique(
             maintain_order=True,
@@ -80,10 +83,10 @@ class AnnotationHandler:
         )
 
         dfs = {
-            "train": df_full.join(train_vids, on="video_uid", how="semi"),
-            "val": df_full.join(val_vids, on="video_uid", how="semi"),
-            "test": df_full.join(test_vids, on="video_uid", how="semi"),
-            "all": df_full,
+            "train": df.join(train_vids, on="video_uid", how="semi"),
+            "val": df.join(val_vids, on="video_uid", how="semi"),
+            "test": df.join(test_vids, on="video_uid", how="semi"),
+            "all": df,
         }
 
         return dfs
@@ -182,3 +185,30 @@ class AnnotationHandler:
         # )
 
         return df
+
+    def create_path_elements(self):
+        df = self.__call__()
+
+        if self.selection == "center":
+            df_elem = df.select(
+                "video_uid", "center_frame"
+            )
+
+        if self.selection in ["segsec", "segratio"]:
+            df_elem = df.with_columns(
+                pl.struct(
+                    ["segment_start_frame", "segment_end_frame"],
+                ).apply(
+                    lambda c: np.linspace(
+                        c["segment_start_frame"],
+                        c["segment_end_frame"],
+                        16, dtype=int
+                    ).tolist(),
+                ).alias("sample_frames"),
+            ).select(
+                "video_uid", "sample_frames"
+            ).explode(
+                "sample_frames"
+            )
+
+        return df_elem
