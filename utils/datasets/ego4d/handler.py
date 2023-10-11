@@ -6,7 +6,7 @@ import polars as pl
 
 
 class AnnotationHandler:
-    def __init__(self, dataset_dir, task_name, phase, selection):
+    def __init__(self, dataset_dir, task_name, phase, selection, sample_num=16):
         data_dir = os.path.join(dataset_dir, "ego4d/v2/annotations")
         self.manifest_file = os.path.join(data_dir, "manifest.csv")
         self.ann_file = {
@@ -15,6 +15,7 @@ class AnnotationHandler:
         }
         self.phase = phase
         self.selection = selection
+        self.sample_num = sample_num
 
         df_train = self._unpack_json_to_df("train")
         df_val = self._unpack_json_to_df("val")
@@ -50,6 +51,7 @@ class AnnotationHandler:
         elif self.selection in ["segsec", "segratio"]:
             df = self._add_parent_num_frames_column(df)
             df = self._format_ann_to_video_segments(df, self.selection)
+            df = self._add_sample_frames_and_labels(df, self.sample_num)
 
         return df
 
@@ -186,6 +188,29 @@ class AnnotationHandler:
 
         return df
 
+    def _add_sample_frames_and_labels(self, df, sample_num):
+        df_with_sample_frames_and_labels = df.with_columns(
+            pl.struct(
+                ["segment_start_frame", "segment_end_frame"],
+            ).apply(
+                lambda c: np.linspace(
+                    c["segment_start_frame"], c["segment_end_frame"],
+                    sample_num, dtype=int,
+                ).tolist(),
+            ).alias("sample_frames"),
+        ).with_columns(
+            pl.struct(
+                ["parent_pnr_frame", "sample_frames"]
+            ).apply(
+                lambda c: [
+                    np.argmin(np.abs(np.array(c["sample_frames"]) - i))
+                    for i in c["parent_pnr_frame"]
+                ]
+            ).alias("label_indicies"),
+        )
+
+        return df_with_sample_frames_and_labels
+
     def create_path_elements(self):
         df = self.__call__()
 
@@ -195,17 +220,7 @@ class AnnotationHandler:
             )
 
         if self.selection in ["segsec", "segratio"]:
-            df_elem = df.with_columns(
-                pl.struct(
-                    ["segment_start_frame", "segment_end_frame"],
-                ).apply(
-                    lambda c: np.linspace(
-                        c["segment_start_frame"],
-                        c["segment_end_frame"],
-                        16, dtype=int
-                    ).tolist(),
-                ).alias("sample_frames"),
-            ).select(
+            df_elem = df.select(
                 "video_uid", "sample_frames"
             ).explode(
                 "sample_frames"
