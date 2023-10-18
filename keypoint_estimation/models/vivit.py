@@ -9,6 +9,7 @@ class System(L.LightningModule):
         self,
         frame_num=16,
         lr=1e-4,
+        threshold=0.5,
     ):
         super().__init__()
         self.save_hyperparameters()
