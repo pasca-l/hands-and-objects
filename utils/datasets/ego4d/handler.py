@@ -50,8 +50,8 @@ class AnnotationHandler:
 
         elif self.selection in ["segsec", "segratio"]:
             df = self._add_parent_num_frames_column(df)
-            df = self._format_ann_to_video_segments(df, self.selection)
-            df = self._add_sample_frames_and_labels(df, self.sample_num)
+            df = self._format_ann_to_video_segments(df)
+            df = self._add_sample_frames_and_labels(df)
 
         return df
 
@@ -94,7 +94,7 @@ class AnnotationHandler:
         return dfs
 
     def _add_center_frame_column(self, df):
-        df_with_center = df.with_columns(
+        df_added = df.with_columns(
             pl.when(
                 pl.col("state_change") == True
             ).then(
@@ -106,11 +106,11 @@ class AnnotationHandler:
             ).cast(pl.Int64).alias("center_frame")
         )
 
-        return df_with_center
+        return df_added
 
     def _add_parent_num_frames_column(self, df):
         man_df = self._unpack_manifest_to_df()
-        df_with_total_num_frames = df.join(
+        df_added = df.join(
             man_df.select(
                 ["video_uid", "canonical_num_frames"],
             ),
@@ -120,16 +120,17 @@ class AnnotationHandler:
             {"canonical_num_frames": "parent_num_frames"},
         )
 
-        return df_with_total_num_frames
+        return df_added
 
     def _format_ann_to_video_segments(
-        self, df, selection, seg_sec=8, seg_ratio=100, fps=30
+        self, df, seg_sec=8, seg_ratio=100, fps=30
     ):
         video_uids = []
         parent_frame_num = []
         segment_start_frame = []
         segment_end_frame = []
         keyframes = []
+        nearest_keyframe_dist = []
 
         iterator = df.select(
             "video_uid"
@@ -154,9 +155,28 @@ class AnnotationHandler:
                 )
             ).drop_nulls().to_numpy().flatten()
 
-            if selection == "segsec":
+            # exclude video which does not have a single PNR frame,
+            # as nearest PNR distance can not be calculated
+            if len(pnr_frames) == 0:
+                continue
+
+            # np.arange()[:,np.newaxis] - np.array(),
+            # creates arrays containing distance from a given pivot
+            # eg. a = np.arange(1, 6), b = np.array([0, 3])
+            #     a[:,np.newaxis] - b with np.abs()
+            #     >> np.array([
+            #           [1, 2, 3, 4, 5],
+            #           [2, 1, 0, 1, 2]
+            #        ])
+            #     -> np.min() vertically, would give the nearest PNR distance
+            pnr_dist = np.min(
+                np.abs(np.arange(1, frame_num+1)[:,np.newaxis] - pnr_frames),
+                axis=1,
+            )
+
+            if self.selection == "segsec":
                 step = seg_sec * fps
-            elif selection == "segratio":
+            elif self.selection == "segratio":
                 step = math.ceil(frame_num / seg_ratio)
 
             start_frames = [i for i in range(1, frame_num - step, step)]
@@ -170,6 +190,9 @@ class AnnotationHandler:
                 pnr_frames[np.where((pnr_frames >= f) & (pnr_frames < f+step))]
                 for f in start_frames
             ])
+            nearest_keyframe_dist.extend([
+                pnr_dist[f-1:f+step] for f in start_frames
+            ])
             segment_start_frame.extend(start_frames)
             segment_end_frame.extend(end_frames)
 
@@ -179,23 +202,23 @@ class AnnotationHandler:
             "parent_frame_num": parent_frame_num,
             "segment_start_frame": segment_start_frame,
             "segment_end_frame": segment_end_frame,
-        })
-        # .with_columns(
-        #     pl.when(
-        #         pl.col("parent_pnr_frame").list.lengths() == 0
-        #     ).then(False).otherwise(True).alias("state_change")
-        # )
+            "nearest_pnr_diff": nearest_keyframe_dist,
+        }).with_columns(
+            pl.when(
+                pl.col("parent_pnr_frame").list.lengths() == 0
+            ).then(False).otherwise(True).alias("state_change")
+        )
 
         return df
 
-    def _add_sample_frames_and_labels(self, df, sample_num):
-        df_with_sample_frames_and_labels = df.with_columns(
+    def _add_sample_frames_and_labels(self, df):
+        df_added = df.with_columns(
             pl.struct(
                 ["segment_start_frame", "segment_end_frame"],
             ).apply(
                 lambda c: np.linspace(
                     c["segment_start_frame"], c["segment_end_frame"],
-                    sample_num, dtype=int,
+                    self.sample_num, dtype=int,
                 ).tolist(),
             ).alias("sample_frames"),
         ).with_columns(
@@ -207,9 +230,17 @@ class AnnotationHandler:
                     for i in c["parent_pnr_frame"]
                 ]
             ).alias("label_indicies"),
+        ).with_columns(
+            pl.struct(
+                ["segment_start_frame", "nearest_pnr_diff", "sample_frames"]
+            ).apply(
+                lambda c: np.array(c["nearest_pnr_diff"])[
+                    np.array(c["sample_frames"]) - c["segment_start_frame"]
+                ].tolist(),
+            ).alias("sample_pnr_diff")
         )
 
-        return df_with_sample_frames_and_labels
+        return df_added
 
     def create_path_elements(self):
         df = self.__call__()
