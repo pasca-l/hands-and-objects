@@ -1,5 +1,4 @@
 import torch.nn as nn
-import torch.nn.functional as nnf
 import torch.optim as optim
 import lightning as L
 import transformers
@@ -81,7 +80,7 @@ class System(L.LightningModule):
         return loss
 
     def _calc_metrics(self, output, target):
-        prob = nnf.softmax(output, dim=0)
+        prob = output.softmax(dim=0)
         preds = (prob > self.hparams.threshold).int()
 
         accuracy = torch.sum(preds == target) / torch.numel(preds)
