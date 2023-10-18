@@ -81,8 +81,8 @@ class System(L.LightningModule):
         return loss
 
     def _calc_metrics(self, output, target):
-        prob = output.softmax(dim=0)
-        preds = (prob > self.hparams.threshold).int()
+        prob = output.sigmoid()
+        preds = prob > self.hparams.threshold
 
         accuracy = torch.sum(preds == target) / torch.numel(preds)
 
