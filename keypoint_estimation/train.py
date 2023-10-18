@@ -26,8 +26,8 @@ def option_parser():
     )
     parser.add_argument(
         '-m', '--model', type=str,
-        default="videomae",
-        choices=["resnet", "videomae"],
+        default="vivit",
+        choices=["resnet", "vivit"],
     )
     parser.add_argument('-l', '--log_dir', type=str, default='./logs/')
     parser.add_argument('-e', '--exp_dir', type=str, default='')
@@ -71,6 +71,9 @@ def main():
     logger.log_hyperparams(dataset.hparams | classifier.hparams)
 
     trainer = L.Trainer(
+        # fast_dev_run=True,
+        # limit_train_batches=5,
+        # limit_val_batches=1,
         accelerator='auto',
         devices='auto',
         max_epochs=10,

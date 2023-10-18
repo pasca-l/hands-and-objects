@@ -36,7 +36,9 @@ class Ego4DKeypointEstDataset(Dataset):
             "pnr": 1,
         }
 
-        handler = AnnotationHandler(dataset_dir, task, phase, selection)
+        handler = AnnotationHandler(
+            dataset_dir, task, phase, selection, sample_num
+        )
         self.ann_len = len(handler)
         self.ann_df = handler()
 
@@ -59,28 +61,16 @@ class Ego4DKeypointEstDataset(Dataset):
         return frames, labels
 
     def _get_frames(self, info, frame_nums):
-        video_uid = info.select("video_uid").item()
-
         frames = []
         for num in frame_nums:
-            # get image file if frame exists, if not extract frame from video
-            # NOTE: cv2.VideoCapture cannot be used with parallel computing
+            # get image file, image should be extracted from video beforehand,
+            # as cv2.VideoCapture cannot be used with parallel computing
             frame_path = os.path.join(self.frame_dir, video_uid, f"{num}.jpg")
-            video_path = os.path.join(self.video_dir, f"{video_uid}.mp4")
 
             if os.path.exists(frame_path):
                 frame = cv2.imread(frame_path)
-
-            # elif os.path.exists(video_path):
-            #     video = cv2.VideoCapture(video_path)
-            #     video.set(cv2.CAP_PROP_POS_FRAMES, num)
-            #     ret, frame = video.read()
-            #     if ret == False:
-            #         raise Exception(f"Cannot read frame {num} at: {video_path}")
-            #     video.release()
-
             else:
-                raise Exception(f"No path at: {frame_path} or {video_path}")
+                raise Exception(f"No path at: {frame_path}")
 
             frame = cv2.resize(frame, (224, 224))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -100,9 +90,9 @@ class Ego4DKeypointEstDataset(Dataset):
             )
 
         elif self.selection in ["segsec", "segratio"]:
-            labels = np.zeros_like(frame_nums)
-            nearest_pnr_idx = [np.argmin(np.abs(frame_nums - i)) for i in pnr]
-            labels[nearest_pnr_idx] = self.classes["pnr"]
+            label_idx = info.select("label_indicies").item()
+            labels = np.zeros(self.sample)
+            labels[label_idx] = self.classes["pnr"]
 
         return labels
 

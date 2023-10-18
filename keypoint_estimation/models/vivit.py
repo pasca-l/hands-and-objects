@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as nnf
 import torch.optim as optim
 import lightning as L
 import transformers
@@ -38,17 +39,21 @@ class System(L.LightningModule):
         return out
 
     def _set_lossfn(self):
-        lossfn = nn.CrossEntropyLoss()
+        lossfn = nn.BCEWithLogitsLoss()
 
         self.hparams.update({"lossfn": lossfn.__class__.__name__})
         return lossfn
 
     def _set_optimizers(self):
         opts = {
-            "optimizer": optim.AdamW(
+            "optimizer": (optimizer := optim.AdamW(
                 self.model.parameters(),
                 lr=self.hparams.lr,
-            )
+            )),
+            "lr_scheduler": optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                T_max=10,
+            ),
         }
 
         self.hparams.update({k:v.__class__.__name__ for k,v in opts.items()})
@@ -76,8 +81,13 @@ class System(L.LightningModule):
         return loss
 
     def _calc_metrics(self, output, target):
+        prob = nnf.softmax(output, dim=0)
+        preds = (prob > self.hparams.threshold).int()
+
+        accuracy = torch.sum(preds == target) / torch.numel(preds)
+
         return {
-            "accuracy": 0,
+            "accuracy": accuracy,
         }
 
 
@@ -91,7 +101,6 @@ class ViViT(nn.Module):
         config = transformers.VivitConfig(
             num_frames=out_channel,
         )
-        # maybe better to use VivitForVideoClassification
         self.vivit = transformers.VivitModel(config)
         self.fc_norm = nn.LayerNorm((768,))
         self.classifier = nn.Linear(in_features=768, out_features=out_channel)
