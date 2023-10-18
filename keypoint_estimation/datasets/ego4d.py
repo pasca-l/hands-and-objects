@@ -61,6 +61,8 @@ class Ego4DKeypointEstDataset(Dataset):
         return frames, labels
 
     def _get_frames(self, info, frame_nums):
+        video_uid = info.select("video_uid").item()
+
         frames = []
         for num in frame_nums:
             # get image file, image should be extracted from video beforehand,
