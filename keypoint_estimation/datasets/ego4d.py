@@ -29,7 +29,7 @@ class Ego4DKeypointEstDataset(Dataset):
         self.transform = transform
         self.with_info = with_info
         self.selection = selection
-        self.sample = 1 if selection == 'center' else sample_num
+        self.sample_num = 1 if selection == 'center' else sample_num
 
         self.classes = {
             "other": 0,
@@ -56,7 +56,8 @@ class Ego4DKeypointEstDataset(Dataset):
         frames, labels = self.transform(frames, labels)
 
         if self.with_info:
-            return frames, labels, info
+            info = self._format_info(info)
+            return frames, labels, info.rows(named=True)
 
         return frames, labels
 
@@ -86,14 +87,12 @@ class Ego4DKeypointEstDataset(Dataset):
 
         if self.selection == "center":
             labels = np.where(
-                frame_nums == pnr,
-                self.classes["pnr"],
-                self.classes["other"],
+                frame_nums == pnr, self.classes["pnr"], self.classes["other"],
             )
 
         elif self.selection in ["segsec", "segratio"]:
             label_idx = info.select("label_indicies").item()
-            labels = np.zeros(self.sample)
+            labels = np.zeros(self.sample_num)
             labels[label_idx] = self.classes["pnr"]
 
         return labels
@@ -106,8 +105,19 @@ class Ego4DKeypointEstDataset(Dataset):
             frame_nums.append(frame_num)
 
         elif self.selection in ["segsec", "segratio"]:
-            start = info.select("segment_start_frame").item()
-            end = info.select("segment_end_frame").item()
-            frame_nums.extend(np.linspace(start, end, self.sample, dtype=int))
+            sample_frames = info.select("sample_frames").item()
+            frame_nums.extend(sample_frames)
 
         return np.array(frame_nums)
+
+    def _format_info(self, info):
+        if self.selection == "center":
+            pass
+
+        elif self.selection in ["segsec", "segratio"]:
+            info = info.select(
+                "video_uid", "parent_frame_num", "segment_start_frame",
+                "segment_end_frame", "state_change", "sample_pnr_diff"
+            )
+
+        return info
