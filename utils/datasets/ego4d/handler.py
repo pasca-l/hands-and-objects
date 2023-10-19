@@ -6,29 +6,47 @@ import polars as pl
 
 
 class AnnotationHandler:
-    def __init__(self, dataset_dir, task_name, phase, selection, sample_num=16):
+    def __init__(
+        self, dataset_dir, task_name, phase, selection, sample_num,
+        fast_load=False,
+    ):
         data_dir = os.path.join(dataset_dir, "ego4d/v2/annotations")
         self.manifest_file = os.path.join(data_dir, "manifest.csv")
         self.ann_file = {
             "train": os.path.join(data_dir, f"{task_name}_train.json"),
-            "val": os.path.join(data_dir, f"{task_name}_val.json")
+            "val": os.path.join(data_dir, f"{task_name}_val.json"),
+            "processed": os.path.join(data_dir, f"{task_name}_processed.json"),
         }
         self.phase = phase
         self.selection = selection
         self.sample_num = sample_num
+        self.fast_load = fast_load
 
-        df_train = self._unpack_json_to_df("train")
-        df_val = self._unpack_json_to_df("val")
-        self.df_full = pl.concat([df_train, df_val], how="align")
+        self.df_full = self._load_full_df()
 
     def __call__(self):
-        df = self._process_df(self.df_full)
-        df = self._create_split(df)[self.phase]
+        df = self._create_split(self.df_full)[self.phase]
         return df
 
     def __len__(self):
         df = self.__call__()
         return df.select(pl.count()).item()
+
+    def _load_full_df(self):
+        if self.fast_load:
+            df_full = pl.read_ndjson(self.ann_file["processed"])
+
+        else:
+            df_train = self._unpack_json_to_df("train")
+            df_val = self._unpack_json_to_df("val")
+            df_full = self._process_df(
+                pl.concat([df_train, df_val], how="align")
+            )
+
+            # save created full DataFrame
+            df_full.write_ndjson(self.ann_file["processed"])
+
+        return df_full
 
     def _unpack_manifest_to_df(self):
         return pl.read_csv(self.manifest_file)
