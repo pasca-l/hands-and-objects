@@ -8,12 +8,14 @@ class KeypointEstDataPreprocessor:
         self.label_mode = label_mode
 
     def __call__(self, frames, label):
-        frame_num, _, _, _ = frames.shape
+        if frames is not None:
+            frame_num, _, _, _ = frames.shape
+            frames = torch.stack([
+                self._frame_transform(frames[i,:,:,:]) for i in range(frame_num)
+            ])
 
-        frames = torch.stack(
-            [self._frame_transform(frames[i,:,:,:]) for i in range(frame_num)]
-        )
-        label = self._label_transform(label)
+        if label is not None:
+            label = self._label_transform(label)
 
         return frames, label
 

@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.optim as optim
+import torchmetrics
 import lightning as L
 import transformers
 
@@ -9,7 +10,7 @@ class System(L.LightningModule):
         self,
         frame_num=16,
         lr=1e-4,
-        threshold=0.5,
+        mode="multilabel",
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -20,6 +21,13 @@ class System(L.LightningModule):
 
         self.lossfn = self._set_lossfn()
         self.optimizer = self._set_optimizers()
+
+        self.metrics = torchmetrics.MetricCollection([
+            torchmetrics.Accuracy(task=mode, num_labels=frame_num),
+            torchmetrics.Precision(task=mode, num_labels=frame_num),
+            torchmetrics.Recall(task=mode, num_labels=frame_num),
+            torchmetrics.F1Score(task=mode, num_labels=frame_num),
+        ])
 
     def training_step(self, batch, batch_idx):
         loss = self._shared_step(batch, phase="train")
@@ -72,7 +80,10 @@ class System(L.LightningModule):
         # expected labels: torch.Size([b, frame_num]) as floating point
         # expected logits: torch.Size([b, frame_num])
         loss = self.lossfn(logits, labels)
-        metrics = self._calc_metrics(logits, labels)
+
+        # metalabels: info.select("sample_pnr_diff")
+        metalabels = batch[2]
+        metrics = self._calc_metrics(logits, labels, metalabels)
 
         self.log(f"loss/{phase}", loss, on_step=True, on_epoch=True)
         metric_dict = {f"{k}/{phase}":v for k,v in metrics.items()}
@@ -80,15 +91,20 @@ class System(L.LightningModule):
 
         return loss
 
-    def _calc_metrics(self, output, target):
-        prob = output.sigmoid()
-        preds = prob > self.hparams.threshold
+    def _calc_metrics(self, output, target, metalabel):
+        # preds outside of [0,1] will be considered as logits,
+        # and sigmoid() is auto applied
+        metrics = self.metrics(output, target)
 
-        accuracy = torch.sum(preds == target) / torch.numel(preds)
-
-        return {
-            "accuracy": accuracy,
+        # metric using meta labels
+        preds = output.sigmoid() > 0.5
+        temp_err = (preds * metalabel).sum() / preds.sum() \
+                   if preds.sum() > 0 else 0.0
+        meta_metrics = {
+            "AverageNearestKeyframeError": temp_err,
         }
+
+        return metrics | meta_metrics
 
 
 class ViViT(nn.Module):

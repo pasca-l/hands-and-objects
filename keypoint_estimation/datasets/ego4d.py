@@ -56,8 +56,9 @@ class Ego4DKeypointEstDataset(Dataset):
         frames, labels = self.transform(frames, labels)
 
         if self.with_info:
-            info = self._format_info(info)
-            return frames, labels, info.rows(named=True)
+            metalabels = info.select("sample_pnr_diff").item().to_list()
+            _, metalabels = self.transform(None, metalabels)
+            return frames, labels, metalabels
 
         return frames, labels
 
@@ -83,9 +84,8 @@ class Ego4DKeypointEstDataset(Dataset):
         return np.array(frames)
 
     def _get_labels(self, info, frame_nums):
-        pnr = info.select("parent_pnr_frame").item()
-
         if self.selection == "center":
+            pnr = info.select("parent_pnr_frame").item()
             labels = np.where(
                 frame_nums == pnr, self.classes["pnr"], self.classes["other"],
             )
@@ -105,19 +105,7 @@ class Ego4DKeypointEstDataset(Dataset):
             frame_nums.append(frame_num)
 
         elif self.selection in ["segsec", "segratio"]:
-            sample_frames = info.select("sample_frames").item()
+            sample_frames = info.select("sample_frames").item().to_list()
             frame_nums.extend(sample_frames)
 
         return np.array(frame_nums)
-
-    def _format_info(self, info):
-        if self.selection == "center":
-            pass
-
-        elif self.selection in ["segsec", "segratio"]:
-            info = info.select(
-                "video_uid", "parent_frame_num", "segment_start_frame",
-                "segment_end_frame", "state_change", "sample_pnr_diff"
-            )
-
-        return info

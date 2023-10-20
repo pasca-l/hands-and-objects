@@ -47,6 +47,7 @@ def main():
         transform_mode='base',
         selection='segsec',
         sample_num=16,
+        with_info=True,
     )
 
     module = importlib.import_module(f'models.{args.model}')
@@ -72,8 +73,8 @@ def main():
 
     trainer = L.Trainer(
         # fast_dev_run=True,
-        # limit_train_batches=5,
-        # limit_val_batches=1,
+        # limit_train_batches=0.1,
+        # limit_val_batches=0.1,
         accelerator='auto',
         devices='auto',
         max_epochs=10,
