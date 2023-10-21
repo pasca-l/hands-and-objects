@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import lightning as L
 import torchmetrics
@@ -8,11 +9,16 @@ class System(L.LightningModule):
         self,
         frame_num=16,
         mode="multilabel",
-        inputs="all_keyframe", # ["random", "all_keyframe", "mean", ""]
+        inputs="random", # ["random", "choice"]
+        seed=None,
+        choice_num=None,
     ):
         super().__init__()
 
+        self.frame_num = frame_num
         self.inputs = inputs
+        self.seed = seed
+        self.choice_num = choice_num
 
         self.stats = torchmetrics.StatScores(task=mode, num_labels=frame_num)
         self.metrics = torchmetrics.MetricCollection([
@@ -28,8 +34,17 @@ class System(L.LightningModule):
         _, labels, metalabels = batch[0], batch[1], batch[2]
         labels = labels.float()
 
-        if self.inputs == "all_keyframe":
-            logits = torch.ones_like(labels)
+        if self.inputs == "random":
+            torch.manual_seed(self.seed)
+            logits = torch.randint(1, labels.shape)
+
+        elif self.inputs == "choice":
+            chosen_idx = np.random.choice(
+                self.frame_num, self.choice_num, replace=False
+            )
+            logits = torch.tensor(
+                np.where(np.isin(np.arange(self.frame_num), chosen_idx), 1, 0)
+            )
 
         metrics = self._calc_metrics(logits, labels, metalabels)
         metric_dict = {f"{k}/test":v for k,v in metrics.items()}
