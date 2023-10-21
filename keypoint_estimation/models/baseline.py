@@ -14,6 +14,7 @@ class System(L.LightningModule):
         choice_num=None,
     ):
         super().__init__()
+        self.save_hyperparameters()
 
         self.frame_num = frame_num
         self.inputs = inputs
@@ -39,12 +40,15 @@ class System(L.LightningModule):
             logits = torch.randint(1, labels.shape)
 
         elif self.inputs == "choice":
-            chosen_idx = np.random.choice(
-                self.frame_num, self.choice_num, replace=False
-            )
-            logits = torch.tensor(
-                np.where(np.isin(np.arange(self.frame_num), chosen_idx), 1, 0)
-            )
+            logits = torch.stack([torch.tensor(
+                np.where(np.isin(
+                    np.arange(self.frame_num),
+                    np.random.choice(
+                        self.frame_num, self.choice_num, replace=False
+                    )
+                ), 1, 0),
+                device=labels.get_device(),
+            ) for _ in range(labels.shape[0])])
 
         metrics = self._calc_metrics(logits, labels, metalabels)
         metric_dict = {f"{k}/test":v for k,v in metrics.items()}
