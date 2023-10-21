@@ -30,6 +30,12 @@ class System(L.LightningModule):
             torchmetrics.F1Score(task=mode, num_labels=frame_num),
         ])
 
+        self.hparams.update({"model": self.model.__class__.__name__})
+        self.hparams.update({"lossfn": self.lossfn.__class__.__name__})
+        self.hparams.update(
+            {k: v.__class__.__name__ for k, v in self.optimizer.items()}
+        )
+
     def training_step(self, batch, batch_idx):
         loss = self._shared_step(batch, phase="train")
         return loss
@@ -49,8 +55,6 @@ class System(L.LightningModule):
 
     def _set_lossfn(self):
         lossfn = nn.BCEWithLogitsLoss()
-
-        self.hparams.update({"lossfn": lossfn.__class__.__name__})
         return lossfn
 
     def _set_optimizers(self):
@@ -64,8 +68,6 @@ class System(L.LightningModule):
                 T_max=10,
             ),
         }
-
-        self.hparams.update({k:v.__class__.__name__ for k,v in opts.items()})
         return opts
 
     def _shared_step(self, batch, phase="train"):
