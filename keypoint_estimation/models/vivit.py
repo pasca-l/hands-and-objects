@@ -22,6 +22,7 @@ class System(L.LightningModule):
         self.lossfn = self._set_lossfn()
         self.optimizer = self._set_optimizers()
 
+        self.stats = torchmetrics.StatScores(task=mode, num_labels=frame_num)
         self.metrics = torchmetrics.MetricCollection([
             torchmetrics.Accuracy(task=mode, num_labels=frame_num),
             torchmetrics.Precision(task=mode, num_labels=frame_num),
@@ -92,11 +93,20 @@ class System(L.LightningModule):
         return loss
 
     def _calc_metrics(self, output, target, metalabel):
+        tp, fp, tn, fn, sup = self.stats(output, target)
+        stat_dict = {
+            "TruePositives": tp,
+            "FalsePositives": fp,
+            "TrueNegatives": tn,
+            "FalseNegatives": fn,
+        }
+
         # preds outside of [0,1] will be considered as logits,
         # and sigmoid() is auto applied
         metrics = self.metrics(output, target)
 
-        # metric using meta labels
+        # metalabel contains the nearest temporal error,
+        # so relevant values are summed
         preds = output.sigmoid() > 0.5
         temp_err = (preds * metalabel).sum() / preds.sum() \
                    if preds.sum() > 0 else 0.0
@@ -104,7 +114,7 @@ class System(L.LightningModule):
             "AverageNearestKeyframeError": temp_err,
         }
 
-        return metrics | meta_metrics
+        return stat_dict | metrics | meta_metrics
 
 
 class ViViT(nn.Module):
