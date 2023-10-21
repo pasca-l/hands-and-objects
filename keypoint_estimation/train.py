@@ -18,19 +18,19 @@ from seed import set_seed
 def option_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-d', '--dataset_dir',type=str,
+        "-d", "--dataset_dir",type=str,
         default=os.path.join(
-            os.path.expanduser('~'),
-            'Documents/datasets',
+            os.path.expanduser("~"),
+            "Documents/datasets",
         ),
     )
     parser.add_argument(
-        '-m', '--model', type=str,
+        "-m", "--model", type=str,
         default="vivit",
         choices=["resnet", "vivit"],
     )
-    parser.add_argument('-l', '--log_dir', type=str, default='./logs/')
-    parser.add_argument('-e', '--exp_dir', type=str, default='')
+    parser.add_argument("-l", "--log_dir", type=str, default="./logs/")
+    parser.add_argument("-e", "--exp_dir", type=str, default="")
 
     return parser.parse_args()
 
@@ -42,19 +42,19 @@ def main():
 
     dataset = KeypointEstDataModule(
         dataset_dir=args.dataset_dir,
-        dataset_mode='ego4d',
+        dataset_mode="ego4d",
         batch_size=4,
-        transform_mode='base',
-        selection='segsec',
+        transform_mode="base",
+        selection="segsec",
         sample_num=16,
         with_info=True,
     )
 
-    module = importlib.import_module(f'models.{args.model}')
+    module = importlib.import_module(f"models.{args.model}")
     classifier = module.System()
 
     # # apply trained weight to model
-    # param = torch.load("./logs/2cls/unet.pth", map_location=torch.device('cpu'))#["state_dict"]
+    # param = torch.load("./logs/2cls/unet.pth", map_location=torch.device("cpu"))#["state_dict"]
     # new_param = {}
     # for k in param.keys():
     #     # if "model.unet.encoder" in k:
@@ -62,7 +62,7 @@ def main():
     #         new_param[k[8:]] = param[k]
     # classifier.model.load_state_dict(new_param, strict=False)
 
-    log_id = datetime.datetime.now().isoformat(timespec='seconds')
+    log_id = datetime.datetime.now().isoformat(timespec="seconds")
     logger = L.pytorch.loggers.TensorBoardLogger(
         save_dir=args.log_dir,
         name=args.exp_dir,
@@ -75,8 +75,8 @@ def main():
         # fast_dev_run=True,
         # limit_train_batches=0.1,
         # limit_val_batches=0.1,
-        accelerator='auto',
-        devices='auto',
+        accelerator="auto",
+        devices="auto",
         max_epochs=10,
         logger=logger,
     )
@@ -90,6 +90,11 @@ def main():
         f=os.path.join(args.log_dir, args.exp_dir, log_id, f"{args.model}.pth"),
     )
 
+    trainer.test(
+        classifier,
+        datamodule=dataset,
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

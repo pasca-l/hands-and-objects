@@ -4,9 +4,10 @@ import argparse
 import importlib
 import git
 import torch
+import lightning as L
 
-git_root = git.Repo(os.getcwd(), search_parent_directories=True
-                    ).git.rev_parse("--show-toplevel")
+git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
+git_root = git_repo.git.rev_parse("--show-toplevel")
 sys.path.append(f"{git_root}/keypoint_estimation/datasets")
 from datamodule import KeypointEstDataModule
 sys.path.append(f"{git_root}/utils/datasets")
@@ -16,47 +17,20 @@ from seed import set_seed
 def option_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-d', '--dataset_dir',type=str,
+        "-d", "--dataset_dir",type=str,
         default=os.path.join(
-            os.path.expanduser('~'),
-            'Documents/datasets',
+            os.path.expanduser("~"),
+            "Documents/datasets",
         ),
     )
     parser.add_argument(
-        '-w', '--weight_path', type=str,
+        "-w", "--weight_path", type=str,
         default="./logs/2023-10-01T19:46:01/videomae.pth"
     )
+    parser.add_argument("-l", "--log_dir", type=str, default="./logs/")
+    parser.add_argument("-e", "--exp_dir", type=str, default="")
 
     return parser.parse_args()
-
-
-class Predictor:
-    def __init__(self, model_name, weight_path, model_args):
-        self.model_name = model_name
-        self.weight_path = weight_path
-        self.model_args = model_args
-        self.model = self.get_model()
-
-    def _get_model(self):
-        module = importlib.import_module(f"models.{self.model_name}")
-        model = module.System(
-            **self.model_args,
-        )
-
-        model.model.load_state_dict(
-            torch.load(
-                self.weight_path,
-                # map_location=torch.device('cpu'),
-            ),
-        )
-        return model
-
-    def get_model_prediction(self, input):
-        self.model.eval()
-        with torch.no_grad():
-            out = self.model(input)
-
-        return out
 
 
 def main():
@@ -66,25 +40,48 @@ def main():
 
     dataset = KeypointEstDataModule(
         dataset_dir=args.dataset_dir,
-        dataset_mode='ego4d',
-        batch_size=1,
-        transform_mode='display',
+        dataset_mode="ego4d",
+        batch_size=4,
+        transform_mode="base",
+        selection="segsec",
+        sample_num=16,
         with_info=True,
     )
-    dataset.setup(stage='test')
-    test_dataloader = dataset.test_dataloader()
 
-    model = Predictor(
-        model_name=os.path.splitext(os.path.basename(args.weight_path))[0],
-        weight_path=args.weight_path,
-        model_args={
-
-        },
+    model_name = os.path.splitext(os.path.basename(args.weight_path))[0]
+    module = importlib.import_module(f"models.{model_name}")
+    classifier = module.System()
+    classifier.model.load_state_dict(
+        torch.load(
+            args.weight_path,
+            # map_location=torch.device("cpu"),
+        )
     )
 
-    for i, (frames, labels, info) in enumerate(test_dataloader):
-        input = frames.float()
-        out = model.get_model_prediction(input)
+    logger = L.pytorch.loggers.TensorBoardLogger(
+        save_dir=args.log_dir,
+        name=args.exp_dir,
+        version=args.weight_path.split("/")[-2],
+        default_hp_metric=False,
+    )
+
+    # trainer = L.Trainer(
+    #     logger=logger,
+    #     devices=[0],
+    #     num_nodes=1,
+    # )
+    # trainer.test(
+    #     classifier,
+    #     datamodule=dataset,
+    # )
+
+    # dataset.setup(stage="test")
+    # test_dataloader = dataset.test_dataloader()
+    # classifier.eval()
+    # for i, (frames, labels, info) in enumerate(test_dataloader):
+    #     input = frames.float()
+    #     with torch.no_grad():
+    #         out = classifier(input)
 
 
 if __name__ == "__main__":
