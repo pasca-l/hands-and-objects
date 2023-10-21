@@ -62,7 +62,6 @@ def main():
         save_dir=args.log_dir,
         name=args.exp_dir,
         version=args.weight_path.split("/")[-2],
-        default_hp_metric=False,
     )
 
     # trainer = L.Trainer(
