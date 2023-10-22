@@ -11,10 +11,14 @@ class System(L.LightningModule):
         frame_num=16,
         mode="multilabel",
         inputs="random", # ["random", "choice"]
+        seed=42,
         choice_num=None,
     ):
         super().__init__()
         self.save_hyperparameters()
+
+        np.random.seed(seed)
+        torch.manual_seed(seed)
 
         self.frame_num = frame_num
         self.inputs = inputs
