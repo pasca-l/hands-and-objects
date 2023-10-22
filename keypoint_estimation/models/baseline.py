@@ -4,11 +4,6 @@ import torch
 import lightning as L
 import torchmetrics
 
-git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
-git_root = git_repo.git.rev_parse("--show-toplevel")
-sys.path.append(f"{git_root}/utils/datasets")
-from seed import set_seed
-
 
 class System(L.LightningModule):
     def __init__(
@@ -16,13 +11,10 @@ class System(L.LightningModule):
         frame_num=16,
         mode="multilabel",
         inputs="random", # ["random", "choice"]
-        seed=None,
         choice_num=None,
     ):
         super().__init__()
         self.save_hyperparameters()
-
-        set_seed(seed)
 
         self.frame_num = frame_num
         self.inputs = inputs
