@@ -30,6 +30,12 @@ class System(L.LightningModule):
         self.lossfn = self._set_lossfn()
         self.optimizer = self._set_optimizers()
 
+        self.hparams.update({"model": self.model.__class__.__name__})
+        self.hparams.update({"lossfn": self.lossfn.__class__.__name__})
+        self.hparams.update(
+            {k: v.__class__.__name__ for k, v in self.optimizer.items()}
+        )
+
     def training_step(self, batch, batch_idx):
         loss = self._shared_step(batch, phase="train")
         return loss
@@ -53,7 +59,6 @@ class System(L.LightningModule):
             from_logits=True,
         )
 
-        self.hparams.update({"lossfn": lossfn.__class__.__name__})
         return lossfn
 
     def _set_optimizers(self):
@@ -69,7 +74,6 @@ class System(L.LightningModule):
             ),
         }
 
-        self.hparams.update({k:v.__class__.__name__ for k,v in opts.items()})
         return opts
 
     def _shared_step(self, batch, phase="train"):
@@ -105,12 +109,12 @@ class System(L.LightningModule):
         convergence = (output.sigmoid() * hand_mask).sum() / hand_mask.sum()
 
         return {
-            f"iou_score": iou,
-            f"f1_score": f1,
-            f"f2_score": f2,
-            f"accuracy": acc,
-            f"recall": recall,
-            f"convergence": convergence,
+            "IouScore": iou,
+            "F1Score": f1,
+            "F2Score": f2,
+            "Accuracy": acc,
+            "Recall": recall,
+            "Convergence": convergence,
         }
 
 
