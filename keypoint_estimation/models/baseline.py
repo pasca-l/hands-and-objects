@@ -1,7 +1,13 @@
+import sys
 import numpy as np
 import torch
 import lightning as L
 import torchmetrics
+
+git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
+git_root = git_repo.git.rev_parse("--show-toplevel")
+sys.path.append(f"{git_root}/utils/datasets")
+from seed import set_seed
 
 
 class System(L.LightningModule):
@@ -16,9 +22,10 @@ class System(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
+        set_seed(seed)
+
         self.frame_num = frame_num
         self.inputs = inputs
-        self.seed = seed
         self.choice_num = choice_num
 
         self.stats = torchmetrics.StatScores(task=mode, num_labels=frame_num)
@@ -36,8 +43,9 @@ class System(L.LightningModule):
         labels = labels.float()
 
         if self.inputs == "random":
-            torch.manual_seed(self.seed)
-            logits = torch.randint(1, labels.shape)
+            logits = torch.randint(
+                2, labels.shape, device=labels.get_device()
+            )
 
         elif self.inputs == "choice":
             logits = torch.stack([torch.tensor(
@@ -55,16 +63,23 @@ class System(L.LightningModule):
         self.log_dict(metric_dict, on_step=True, on_epoch=True)
 
     def _calc_metrics(self, output, target, metalabel):
+        # stats (tp, fp, tn, fn) is converted to percentage,
+        # as value increases, with greater batch size and input frame number
+        batch_num = output.shape[0]
         tp, fp, tn, fn, sup = self.stats(output, target)
         stat_dict = {
-            "TruePositives": tp,
-            "FalsePositives": fp,
-            "TrueNegatives": tn,
-            "FalseNegatives": fn,
+            "TruePositives": tp * 100 / (batch_num * self.frame_num),
+            "FalsePositives": fp * 100 / (batch_num * self.frame_num),
+            "TrueNegatives": tn * 100 / (batch_num * self.frame_num),
+            "FalseNegatives": fn * 100 / (batch_num * self.frame_num),
         }
 
+        # preds outside of [0,1] will be considered as logits,
+        # and sigmoid() is auto applied
         metrics = self.metrics(output, target)
 
+        # metalabel contains the nearest temporal error,
+        # so relevant values are summed
         preds = output.sigmoid() > 0.5
         temp_err = (preds * metalabel).sum() / preds.sum() \
                    if preds.sum() > 0 else 0.0

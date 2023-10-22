@@ -95,20 +95,17 @@ class System(L.LightningModule):
         return loss
 
     def _calc_metrics(self, output, target, metalabel):
+        batch_num = output.shape[0]
         tp, fp, tn, fn, sup = self.stats(output, target)
         stat_dict = {
-            "TruePositives": tp,
-            "FalsePositives": fp,
-            "TrueNegatives": tn,
-            "FalseNegatives": fn,
+            "TruePositives": tp * 100 / (batch_num * self.frame_num),
+            "FalsePositives": fp * 100 / (batch_num * self.frame_num),
+            "TrueNegatives": tn * 100 / (batch_num * self.frame_num),
+            "FalseNegatives": fn * 100 / (batch_num * self.frame_num),
         }
 
-        # preds outside of [0,1] will be considered as logits,
-        # and sigmoid() is auto applied
         metrics = self.metrics(output, target)
 
-        # metalabel contains the nearest temporal error,
-        # so relevant values are summed
         preds = output.sigmoid() > 0.5
         temp_err = (preds * metalabel).sum() / preds.sum() \
                    if preds.sum() > 0 else 0.0
