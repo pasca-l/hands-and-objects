@@ -21,6 +21,7 @@ class Ego4DKeypointEstDataset(Dataset):
         with_info=False,
         selection='center',  #['center', 'segsec', 'segratio'],
         sample_num=16,
+        neg_ratio=None,
     ):
         super().__init__()
 
@@ -37,13 +38,12 @@ class Ego4DKeypointEstDataset(Dataset):
         }
 
         handler = AnnotationHandler(
-            dataset_dir, task, phase, selection, sample_num
+            dataset_dir, task, phase, selection, sample_num, neg_ratio
         )
-        self.ann_len = len(handler)
         self.ann_df = handler()
 
     def __len__(self):
-        return self.ann_len
+        return self.ann_df.height
 
     def __getitem__(self, index):
         info = self.ann_df[index]

@@ -16,6 +16,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         with_info=False,
         selection='center',
         sample_num=1,
+        neg_ratio=None,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -26,6 +27,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         self.with_info = with_info
         self.selection = selection
         self.sample_num = sample_num
+        self.neg_ratio = neg_ratio
 
         self.num_workers=os.cpu_count()
 
@@ -42,6 +44,7 @@ class KeypointEstDataModule(L.LightningDataModule):
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
+                    neg_ratio=self.neg_ratio,
                 )
                 self.val_data = Ego4DKeypointEstDataset(
                     dataset_dir=self.dataset_dir,
@@ -50,6 +53,7 @@ class KeypointEstDataModule(L.LightningDataModule):
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
+                    neg_ratio=self.neg_ratio,
                 )
 
             if stage == "test":
@@ -60,6 +64,7 @@ class KeypointEstDataModule(L.LightningDataModule):
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
+                    neg_ratio=None,
                 )
 
             if stage == "predict":

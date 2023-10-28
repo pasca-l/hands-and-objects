@@ -7,7 +7,7 @@ import polars as pl
 
 class AnnotationHandler:
     def __init__(
-        self, dataset_dir, task_name, phase, selection, sample_num,
+        self, dataset_dir, task_name, phase, selection, sample_num, neg_ratio,
         fast_load=False,
     ):
         data_dir = os.path.join(dataset_dir, "ego4d/v2/annotations")
@@ -20,17 +20,15 @@ class AnnotationHandler:
         self.phase = phase
         self.selection = selection
         self.sample_num = sample_num
+        self.neg_ratio = neg_ratio
         self.fast_load = fast_load
 
         self.df_full = self._load_full_df()
 
     def __call__(self):
         df = self._create_split(self.df_full)[self.phase]
+        df = self._adjust_posneg_ratio(df, self.neg_ratio)
         return df
-
-    def __len__(self):
-        df = self.__call__()
-        return df.select(pl.count()).item()
 
     def _load_full_df(self):
         if self.fast_load:
@@ -110,6 +108,24 @@ class AnnotationHandler:
         }
 
         return dfs
+
+    def _adjust_posneg_ratio(self, df, neg_ratio):
+        if neg_ratio == None:
+            return df
+
+        df_pos = df.filter(
+            pl.col("state_change") == True
+        )
+        df_neg = df.filter(
+            pl.col("state_change") == False
+        )
+
+        pos_count = df_pos.height
+        neg_count = int(pos_count * neg_ratio)
+
+        df = df_pos.vstack(df_neg.sample(n=neg_count, seed=0))
+
+        return df
 
     def _add_center_frame_column(self, df):
         df_added = df.with_columns(
