@@ -4,6 +4,8 @@ import torchmetrics
 import lightning as L
 import transformers
 
+from lossfn import set_lossfn
+
 
 class System(L.LightningModule):
     def __init__(
@@ -11,15 +13,18 @@ class System(L.LightningModule):
         frame_num=16,
         lr=1e-4,
         mode="multilabel",
+        lossfn_name="bce",
     ):
         super().__init__()
         self.save_hyperparameters()
+
+        self.frame_num = frame_num
 
         self.model = ViViT(
             out_channel=frame_num,
         )
 
-        self.lossfn = self._set_lossfn()
+        self.lossfn = set_lossfn(lossfn_name)
         self.optimizer = self._set_optimizers()
 
         self.stats = torchmetrics.StatScores(task=mode, num_labels=frame_num)
@@ -52,10 +57,6 @@ class System(L.LightningModule):
     def forward(self, x):
         out = self.model(x)
         return out
-
-    def _set_lossfn(self):
-        lossfn = nn.BCEWithLogitsLoss()
-        return lossfn
 
     def _set_optimizers(self):
         opts = {
