@@ -9,6 +9,7 @@ import lightning as L
 
 git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
 git_root = git_repo.git.rev_parse("--show-toplevel")
+sys.path.append(f"{git_root}/keypoint_estimation/models")
 sys.path.append(f"{git_root}/keypoint_estimation/datasets")
 from datamodule import KeypointEstDataModule
 sys.path.append(f"{git_root}/utils/datasets")

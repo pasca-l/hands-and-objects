@@ -23,13 +23,13 @@ def set_lossfn(name, mode="multilabel"):
         )
 
     elif name == "dice":
-        return smp.DiceLoss(
+        return smp.losses.DiceLoss(
             mode=mode,
             from_logits=True,
         )
 
     elif name == "focal":
-        return smp.FocalLoss(
+        return smp.losses.FocalLoss(
             mode=mode,
             alpha=0.02, # prior probability of having positive value in target
         )
@@ -54,8 +54,13 @@ def create_soft_label(
         x = np.linspace(-3 * sigma, 3 * sigma, frame_num)
         gauss = amp * np.exp(-(x - mu) ** 2 / (2 * sigma ** 2))
 
-        soft_label = torch.Tensor(
-            [np.convolve(label[i], gauss, mode="same") for i in range(batch)]
+        soft_label = torch.tensor(
+            np.array([
+                np.convolve(label[i].cpu(), gauss, mode="same")
+                for i in range(batch)
+            ]),
+            device=torch.device(label.device),
+            dtype=torch.float32,
         )
 
     else:
