@@ -1,3 +1,4 @@
+import torch
 import torch.optim as optim
 import lightning as L
 
@@ -17,6 +18,7 @@ class KeypointEstModule(L.LightningModule):
     ):
         super().__init__()
         self.save_hyperparameters()
+        self.example_input_array = torch.rand(4, 16, 3, 224, 224)
 
         self.model = set_model(
             model_name,
@@ -27,7 +29,7 @@ class KeypointEstModule(L.LightningModule):
         self.optimizer = self._set_optimizers()
 
         self.metrics = set_metrics(mode=mode, frame_num=frame_num)
-        self.meta_metric = set_meta_metrics()
+        self.meta_metrics = set_meta_metrics()
 
         self.hparams.update({"model": self.model.__class__.__name__})
         self.hparams.update({"lossfn": self.lossfn.__class__.__name__})

@@ -9,7 +9,9 @@ class TPPercentage(Metric):
         self.task = task
         self.num_labels = num_labels
 
-        self.add_state("tp_pct", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state(
+            "tp_pct", default=torch.tensor(0.0), dist_reduce_fx="sum"
+        )
 
     def update(self, preds, target):
         batch_num = preds.shape[0]
@@ -31,7 +33,9 @@ class FPPercentage(Metric):
         self.task = task
         self.num_labels = num_labels
 
-        self.add_state("fp_pct", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state(
+            "fp_pct", default=torch.tensor(0.0), dist_reduce_fx="sum"
+        )
 
     def update(self, preds, target):
         batch_num = preds.shape[0]
@@ -53,7 +57,9 @@ class TNPercentage(Metric):
         self.task = task
         self.num_labels = num_labels
 
-        self.add_state("tn_pct", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state(
+            "tn_pct", default=torch.tensor(0.0), dist_reduce_fx="sum"
+        )
 
     def update(self, preds, target):
         batch_num = preds.shape[0]
@@ -75,7 +81,9 @@ class FNPercentage(Metric):
         self.task = task
         self.num_labels = num_labels
 
-        self.add_state("fn_pct", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state(
+            "fn_pct", default=torch.tensor(0.0), dist_reduce_fx="sum"
+        )
 
     def update(self, preds, target):
         batch_num = preds.shape[0]

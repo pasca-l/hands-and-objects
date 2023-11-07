@@ -1,12 +1,12 @@
 import torchmetrics
 
-from stats import (
+from .stats import (
     TPPercentage,
     FPPercentage,
     TNPercentage,
     FNPercentage,
 )
-from keyframe_error import (
+from .keyframe_error import (
     AverageNearestKeyframeError,
     AverageKeyframeNumError,
 )

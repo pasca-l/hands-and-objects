@@ -8,10 +8,10 @@ class AverageNearestKeyframeError(Metric):
         self.threshold = threshold
 
         self.add_state(
-            "nearest_err", default=torch.tensor(0), dist_reduce_fx="sum"
+            "nearest_err", default=torch.tensor(0.0), dist_reduce_fx="sum"
         )
 
-    def update(selt, logits, metalabel):
+    def update(self, logits, metalabel):
         # assume input as logits
         preds = logits.sigmoid() > self.threshold
         err = (preds * metalabel).sum() / preds.sum() \
@@ -29,7 +29,7 @@ class AverageKeyframeNumError(Metric):
         self.threshold = threshold
 
         self.add_state(
-            "num_err", default=torch.tensor(0), dist_reduce_fx="sum"
+            "num_err", default=torch.tensor(0.0), dist_reduce_fx="sum"
         )
 
     def update(self, logits, target):
