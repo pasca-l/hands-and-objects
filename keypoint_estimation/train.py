@@ -1,19 +1,11 @@
 import os
-import sys
 import argparse
-import importlib
 import datetime
-import git
 import torch
 import lightning as L
 
-git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
-git_root = git_repo.git.rev_parse("--show-toplevel")
-sys.path.append(f"{git_root}/keypoint_estimation/models")
-sys.path.append(f"{git_root}/keypoint_estimation/datasets")
 from datamodule import KeypointEstDataModule
-sys.path.append(f"{git_root}/utils/datasets")
-from seed import set_seed
+from system import KeypointEstModule
 
 
 def option_parser():
@@ -39,7 +31,7 @@ def option_parser():
 def main():
     args = option_parser()
 
-    set_seed()
+    L.seed_everything(42, workers=True)
 
     dataset = KeypointEstDataModule(
         dataset_dir=args.dataset_dir,
@@ -51,8 +43,9 @@ def main():
         with_info=True,
     )
 
-    module = importlib.import_module(f"models.{args.model}")
-    classifier = module.System()
+    classifier = KeypointEstModule(
+        model_name=args.model,
+    )
 
     # # apply trained weight to model
     # param = torch.load("./logs/2cls/unet.pth", map_location=torch.device("cpu"))#["state_dict"]
@@ -72,6 +65,7 @@ def main():
     logger.log_hyperparams(dataset.hparams | classifier.hparams)
 
     trainer = L.Trainer(
+        deterministic=True,
         # fast_dev_run=True,
         # limit_train_batches=0.1,
         # limit_val_batches=0.1,

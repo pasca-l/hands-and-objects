@@ -2,8 +2,10 @@ import os
 import lightning as L
 from torch.utils.data import DataLoader
 
-from ego4d import Ego4DKeypointEstDataset
-from transform import KeypointEstDataPreprocessor
+from datasets import (
+    Ego4DKeypointEstDataset,
+    KeypointEstDataPreprocessor,
+)
 
 
 class KeypointEstDataModule(L.LightningDataModule):
