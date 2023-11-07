@@ -3,6 +3,7 @@ import lightning as L
 
 from models import set_model
 from models.lossfn import set_lossfn
+from models.metrics import set_metrics, set_meta_metrics
 
 
 class KeypointEstModule(L.LightningModule):
@@ -12,7 +13,7 @@ class KeypointEstModule(L.LightningModule):
         lossfn_name="asyml",
         frame_num=16,
         lr=1e-4,
-        # mode="multilabel",
+        mode="multilabel",
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -25,13 +26,8 @@ class KeypointEstModule(L.LightningModule):
         self.lossfn = set_lossfn(lossfn_name)
         self.optimizer = self._set_optimizers()
 
-        # self.stats = torchmetrics.StatScores(task=mode, num_labels=frame_num)
-        # self.metrics = torchmetrics.MetricCollection([
-        #     torchmetrics.Accuracy(task=mode, num_labels=frame_num),
-        #     torchmetrics.Precision(task=mode, num_labels=frame_num),
-        #     torchmetrics.Recall(task=mode, num_labels=frame_num),
-        #     torchmetrics.F1Score(task=mode, num_labels=frame_num),
-        # ])
+        self.metrics = set_metrics(mode=mode, frame_num=frame_num)
+        self.meta_metric = set_meta_metrics()
 
         self.hparams.update({"model": self.model.__class__.__name__})
         self.hparams.update({"lossfn": self.lossfn.__class__.__name__})
@@ -84,32 +80,17 @@ class KeypointEstModule(L.LightningModule):
         loss = self.lossfn(logits, labels)
 
         # metalabels: info.select("sample_pnr_diff")
-        # metalabels = batch[2]
-        # metrics = self._calc_metrics(logits, labels, metalabels)
+        metalabels = batch[2]
+        metrics = self._calc_metrics(logits, labels, metalabels)
 
-        # self.log(f"loss/{phase}", loss, on_step=True, on_epoch=True)
-        # metric_dict = {f"{k}/{phase}":v for k,v in metrics.items()}
-        # self.log_dict(metric_dict, on_step=True, on_epoch=True)
+        self.log(f"loss/{phase}", loss, on_step=False, on_epoch=True)
+        metric_dict = {f"{k}/{phase}":v for k,v in metrics.items()}
+        self.log_dict(metric_dict, on_step=False, on_epoch=True)
 
         return loss
 
-    # def _calc_metrics(self, output, target, metalabel):
-    #     batch_num = output.shape[0]
-    #     tp, fp, tn, fn, sup = self.stats(output, target)
-    #     stat_dict = {
-    #         "TruePositives": tp * 100 / (batch_num * self.frame_num),
-    #         "FalsePositives": fp * 100 / (batch_num * self.frame_num),
-    #         "TrueNegatives": tn * 100 / (batch_num * self.frame_num),
-    #         "FalseNegatives": fn * 100 / (batch_num * self.frame_num),
-    #     }
+    def _calc_metrics(self, output, target, metalabel):
+        metrics = self.metrics(output, target)
+        meta_metrics = self.meta_metrics(output, metalabel)
 
-    #     metrics = self.metrics(output, target)
-
-    #     preds = output.sigmoid() > 0.5
-    #     temp_err = (preds * metalabel).sum() / preds.sum() \
-    #                if preds.sum() > 0 else 0.0
-    #     meta_metrics = {
-    #         "AverageNearestKeyframeError": temp_err,
-    #     }
-
-    #     return stat_dict | metrics | meta_metrics
+        return metrics | meta_metrics
