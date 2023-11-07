@@ -61,6 +61,7 @@ def main():
         save_dir=args.log_dir,
         name=args.exp_dir,
         version=log_id,
+        log_graph=True,
     )
     logger.log_hyperparams(dataset.hparams | classifier.hparams)
 
