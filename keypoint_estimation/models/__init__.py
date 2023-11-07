@@ -1,5 +1,5 @@
-from models.baseline import Baseline
-from models.vivit import ViViT
+from .baseline import Baseline
+from .vivit import ViViT
 
 
 def set_model(name, out_channel):

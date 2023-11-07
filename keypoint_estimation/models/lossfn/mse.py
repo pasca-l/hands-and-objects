@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as nnf
 
-from lossfn import create_soft_label
+from . import create_soft_label
 
 
 class MSELoss(nn.Module):
