@@ -1,25 +1,40 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as nnf
 import segmentation_models_pytorch as smp
 
+from lossfn.asymmetric_loss import AsymmetricLoss
+from lossfn.bce import BCELoss, SoftBCELoss
+from lossfn.ce import CELoss, SoftCELoss
+from lossfn.mse import MSELoss, SoftMSELoss
 
-def set_lossfn(name, mode="multilabel"):
-    if name == "bce":
-        return nn.BCEWithLogitsLoss()
+
+def set_lossfn(name, mode="multilabel", smooth_type="gauss"):
+    if name == "asyml":
+        return AsymmetricLoss()
+
+    elif name == "bce":
+        return BCELoss()
 
     elif name == "softbce":
-        return SoftBCEWithLogitsLoss(
-            smooth_type="gauss",
+        return SoftBCELoss(
+            smooth_type=smooth_type,
+        )
+
+    elif name == "ce":
+        return CELoss()
+
+    elif name == "softce":
+        return SoftCELoss(
+            smooth_type=smooth_type,
         )
 
     elif name == "mse":
-        return MSEFromLogitsLoss()
+        return MSELoss()
 
     elif name == "softmse":
-        return SoftMSEFromLogitsLoss(
-            smooth_type="gauss",
+        return SoftMSELoss(
+            smooth_type=smooth_type,
         )
 
     elif name == "dice":
@@ -67,34 +82,3 @@ def create_soft_label(
         raise Exception(f"No smooth_type named: {smooth_type}")
 
     return soft_label
-
-
-class SoftBCEWithLogitsLoss(nn.Module):
-    def __init__(self, smooth_type):
-        super().__init__()
-        self.smooth_type = smooth_type
-
-    def forward(self, input, target):
-        soft_label = create_soft_label(target, self.smooth_type)
-        loss = nnf.binary_cross_entropy_with_logits(input, soft_label)
-        return loss
-
-
-class MSEFromLogitsLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, input, target):
-        loss = nnf.mse_loss(input.sigmoid(), target)
-        return loss
-
-
-class SoftMSEFromLogitsLoss(nn.Module):
-    def __init__(self, smooth_type):
-        super().__init__()
-        self.smooth_type = smooth_type
-
-    def forward(self, input, target):
-        soft_label = create_soft_label(target, self.smooth_type)
-        loss = nnf.mse_loss(input.sigmoid(), soft_label)
-        return loss
