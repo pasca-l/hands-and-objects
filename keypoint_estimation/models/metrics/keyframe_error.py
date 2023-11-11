@@ -12,12 +12,14 @@ class AverageNearestKeyframeError(Metric):
         )
 
     def update(self, logits, metalabel):
+        batch_num = logits.shape[0]
+
         # assume input as logits
         preds = logits.sigmoid() > self.threshold
         err = (preds * metalabel).sum() / preds.sum() \
                 if preds.sum() > 0 else 0.0
 
-        self.nearest_err += err
+        self.nearest_err += err / batch_num
 
     def compute(self):
         return self.nearest_err
@@ -33,11 +35,13 @@ class AverageKeyframeNumError(Metric):
         )
 
     def update(self, logits, target):
+        batch_num = logits.shape[0]
+
         # assume input as logits
         preds = logits.sigmoid() > self.threshold
         err = torch.abs(preds.sum() - target.sum())
 
-        self.num_err += err
+        self.num_err += err / batch_num
 
     def compute(self):
         return self.num_err
