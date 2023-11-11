@@ -2,7 +2,7 @@ import torch
 import torch.optim as optim
 import lightning as L
 
-from models import set_model
+from models import set_model, adjust_param
 from models.lossfn import set_lossfn
 from models.metrics import set_metrics, set_meta_metrics
 
@@ -11,6 +11,8 @@ class KeypointEstModule(L.LightningModule):
     def __init__(
         self,
         model_name="vivit",
+        pretrain_mode=None,
+        weight_path=None,
         lossfn_name="asyml",
         frame_num=16,
         lr=1e-4,
@@ -18,12 +20,16 @@ class KeypointEstModule(L.LightningModule):
     ):
         super().__init__()
         self.save_hyperparameters()
-        self.example_input_array = torch.rand(4, 16, 3, 224, 224)
+        self.example_input_array = torch.Tensor(4, 16, 3, 224, 224)
 
         self.model = set_model(
             model_name,
             out_channel=frame_num,
         )
+        if pretrain_mode is not None:
+            param = torch.load(weight_path)
+            param = adjust_param(param, pretrain_mode)
+            self.model.load_state_dict(param, strict=False)
 
         self.lossfn = set_lossfn(lossfn_name)
         self.optimizer = self._set_optimizers()

@@ -47,29 +47,19 @@ def main():
         model_name=args.model,
     )
 
-    # # apply trained weight to model
-    # param = torch.load("./logs/2cls/unet.pth", map_location=torch.device("cpu"))#["state_dict"]
-    # new_param = {}
-    # for k in param.keys():
-    #     # if "model.unet.encoder" in k:
-    #     if "encoder" in k:
-    #         new_param[k[8:]] = param[k]
-    # classifier.model.load_state_dict(new_param, strict=False)
-
     log_id = datetime.datetime.now().isoformat(timespec="seconds")
     logger = L.pytorch.loggers.TensorBoardLogger(
         save_dir=args.log_dir,
         name=args.exp_dir,
         version=log_id,
-        log_graph=True,
     )
     logger.log_hyperparams(dataset.hparams | classifier.hparams)
 
     trainer = L.Trainer(
         deterministic=True,
         # fast_dev_run=True,
-        # limit_train_batches=0.1,
-        # limit_val_batches=0.1,
+        # limit_train_batches=0.01,
+        # limit_val_batches=0.01,
         accelerator="auto",
         devices="auto",
         max_epochs=10,
