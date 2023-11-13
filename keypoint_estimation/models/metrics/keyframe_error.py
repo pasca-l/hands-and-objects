@@ -3,9 +3,10 @@ from torchmetrics import Metric
 
 
 class AverageNearestKeyframeError(Metric):
-    def __init__(self, threshold=0.5):
+    def __init__(self, threshold=0.5, fps=30):
         super().__init__()
         self.threshold = threshold
+        self.fps = fps
 
         self.add_state(
             "nearest_err", default=torch.tensor(0.0), dist_reduce_fx="sum"
@@ -19,7 +20,7 @@ class AverageNearestKeyframeError(Metric):
         err = (preds * metalabel).sum() / preds.sum() \
                 if preds.sum() > 0 else 0.0
 
-        self.nearest_err += err / batch_num
+        self.nearest_err += err / self.fps
 
     def compute(self):
         return self.nearest_err
@@ -41,7 +42,7 @@ class AverageKeyframeNumError(Metric):
         preds = logits.sigmoid() > self.threshold
         err = torch.abs(preds.sum() - target.sum())
 
-        self.num_err += err / batch_num
+        self.num_err += err
 
     def compute(self):
         return self.num_err
