@@ -51,7 +51,7 @@ class KeypointEstModule(L.LightningModule):
         _ = self._shared_step(batch, phase="val")
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
-        _ = self._shared_step(batch, phase="test")
+        self._shared_step(batch, phase="test")
 
     def configure_optimizers(self):
         return self.optimizer
@@ -83,19 +83,24 @@ class KeypointEstModule(L.LightningModule):
         # expected frames: torch.Size([b, frame_num, ch, w, h]) as double
         logits = self.model(frames)
 
-        # expected labels: torch.Size([b, frame_num]) as floating point
-        # expected logits: torch.Size([b, frame_num])
-        loss = self.lossfn(logits, labels)
+        if phase == "test":
+            # metalabels: info.select("sample_pnr_diff")
+            metalabels = batch[2]
+            metrics = self._calc_metrics(logits, labels, metalabels)
 
-        # metalabels: info.select("sample_pnr_diff")
-        metalabels = batch[2]
-        metrics = self._calc_metrics(logits, labels, metalabels)
+            metric_dict = {f"metrics/{k}":v for k,v in metrics.items()}
+            self.log_dict(metric_dict, on_step=False, on_epoch=True)
 
-        self.log(f"loss/{phase}", loss, on_step=False, on_epoch=True)
-        metric_dict = {f"{k}/{phase}":v for k,v in metrics.items()}
-        self.log_dict(metric_dict, on_step=False, on_epoch=True)
+            return
 
-        return loss
+        else:
+            # expected labels: torch.Size([b, frame_num]) as floating point
+            # expected logits: torch.Size([b, frame_num])
+            loss = self.lossfn(logits, labels)
+
+            self.log(f"loss/{phase}", loss, on_step=False, on_epoch=True)
+
+            return loss
 
     def _calc_metrics(self, output, target, metalabel):
         metrics = self.metrics(output, target)
