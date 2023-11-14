@@ -40,7 +40,8 @@ def main():
         transform_mode="base",
         selection="segsec",
         sample_num=16,
-        with_info=True,
+        with_info=False,
+        neg_ratio=None,
     )
 
     classifier = KeypointEstModule(
@@ -73,11 +74,6 @@ def main():
     torch.save(
         classifier.model.state_dict(),
         f=os.path.join(args.log_dir, args.exp_dir, log_id, f"{args.model}.pth"),
-    )
-
-    trainer.test(
-        classifier,
-        datamodule=dataset,
     )
 
 
