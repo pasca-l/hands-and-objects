@@ -15,12 +15,12 @@ class Ego4DKeypointEstDataset(Dataset):
     def __init__(
         self,
         dataset_dir,
-        task='fho_oscc-pnr',
-        phase='train',
+        task="fho_oscc-pnr",
+        phase="train",
         transform=None,
-        with_info=False,
-        selection='center',  #['center', 'segsec', 'segratio'],
+        selection="center",  #["center", "segsec", "segratio"],
         sample_num=16,
+        with_info=False,
         neg_ratio=None,
     ):
         super().__init__()
@@ -30,7 +30,7 @@ class Ego4DKeypointEstDataset(Dataset):
         self.transform = transform
         self.with_info = with_info
         self.selection = selection
-        self.sample_num = 1 if selection == 'center' else sample_num
+        self.sample_num = 1 if selection == "center" else sample_num
 
         self.classes = {
             "other": 0,
@@ -55,12 +55,13 @@ class Ego4DKeypointEstDataset(Dataset):
 
         frames, labels = self.transform(frames, labels)
 
-        if self.with_info:
-            metalabels = info.select("sample_pnr_diff").item().to_list()
-            _, metalabels = self.transform(None, metalabels)
-            return frames, labels, metalabels
+        metalabels = info.select("sample_pnr_diff").item().to_list()
+        _, metalabels = self.transform(None, metalabels)
 
-        return frames, labels
+        if self.with_info:
+            return frames, labels, metalabels, info.rows(named=True)
+
+        return frames, labels, metalabels
 
     def _get_frames(self, info, frame_nums):
         video_uid = info.select("video_uid").item()
