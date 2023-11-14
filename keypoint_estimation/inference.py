@@ -1,17 +1,10 @@
 import os
-import sys
 import argparse
-import importlib
-import git
 import torch
 import lightning as L
 
-git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
-git_root = git_repo.git.rev_parse("--show-toplevel")
-sys.path.append(f"{git_root}/keypoint_estimation/datasets")
 from datamodule import KeypointEstDataModule
-sys.path.append(f"{git_root}/utils/datasets")
-from seed import set_seed
+from system import KeypointEstModule
 
 
 def option_parser():
@@ -24,11 +17,13 @@ def option_parser():
         ),
     )
     parser.add_argument(
-        "-w", "--weight_path", type=str,
-        default="./logs/2023-10-01T19:46:01/videomae.pth"
+        "-m", "--model", type=str,
+        default="vivit",
+        choices=["resnet", "vivit"],
     )
+    parser.add_argument("-w", "--weight_path", type=str, required=True)
     parser.add_argument("-l", "--log_dir", type=str, default="./logs/")
-    parser.add_argument("-e", "--exp_dir", type=str, default="")
+    parser.add_argument("-e", "--exp_dir", type=str, default="inference")
 
     return parser.parse_args()
 
@@ -36,7 +31,7 @@ def option_parser():
 def main():
     args = option_parser()
 
-    set_seed()
+    L.seed_everything(42, workers=True)
 
     dataset = KeypointEstDataModule(
         dataset_dir=args.dataset_dir,
@@ -46,41 +41,32 @@ def main():
         selection="segsec",
         sample_num=16,
         with_info=True,
+        neg_ratio=None,
     )
 
-    model_name = os.path.splitext(os.path.basename(args.weight_path))[0]
-    module = importlib.import_module(f"models.{model_name}")
-    classifier = module.System()
+    classifier = KeypointEstModule(
+        model_name=args.model,
+    )
     classifier.model.load_state_dict(
-        torch.load(
-            args.weight_path,
-            # map_location=torch.device("cpu"),
-        )
+        torch.load(args.weight_path),
+        strict=True,
     )
 
     logger = L.pytorch.loggers.TensorBoardLogger(
         save_dir=args.log_dir,
         name=args.exp_dir,
-        version=args.weight_path.split("/")[-2],
     )
+    logger.log_hyperparams(dataset.hparams | classifier.hparams)
 
-    # trainer = L.Trainer(
-    #     logger=logger,
-    #     devices=[0],
-    #     num_nodes=1,
-    # )
-    # trainer.test(
-    #     classifier,
-    #     datamodule=dataset,
-    # )
-
-    # dataset.setup(stage="test")
-    # test_dataloader = dataset.test_dataloader()
-    # classifier.eval()
-    # for i, (frames, labels, info) in enumerate(test_dataloader):
-    #     input = frames.float()
-    #     with torch.no_grad():
-    #         out = classifier(input)
+    trainer = L.Trainer(
+        deterministic=True,
+        num_nodes=1,
+        logger=logger,
+    )
+    trainer.test(
+        classifier,
+        datamodule=dataset,
+    )
 
 
 if __name__ == "__main__":
