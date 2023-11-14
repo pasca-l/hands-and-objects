@@ -67,7 +67,6 @@ class Visualizer:
                 if not os.path.exists(frame_path):
                     raise Exception(f"No path at: {frame_path}")
                 frame = cv2.imread(frame_path)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # add red boundary for pnr frames
             if n in info["parent_pnr_frame"]:
