@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import torch.nn as nn
 import segmentation_models_pytorch as smp
 
 
@@ -35,15 +34,20 @@ def create_soft_label(
     return soft_label
 
 
-from .asymmetric_loss import AsymmetricLoss
+from .asymmetric_loss import AsymmetricLoss, SoftAsymmetricLoss
 from .bce import BCELoss, SoftBCELoss
 from .ce import CELoss, SoftCELoss
-from .mse import MSELoss, SoftMSELoss
+from .mse import MSELoss, SoftMSELoss, RMSELoss, SoftRMSELoss
 
 
 def set_lossfn(name, mode="multilabel", smooth_type="gauss"):
     if name == "asyml":
         return AsymmetricLoss()
+
+    elif name == "softasyml":
+        return SoftAsymmetricLoss(
+            smooth_type=smooth_type,
+        )
 
     elif name == "bce":
         return BCELoss()
@@ -66,6 +70,14 @@ def set_lossfn(name, mode="multilabel", smooth_type="gauss"):
 
     elif name == "softmse":
         return SoftMSELoss(
+            smooth_type=smooth_type,
+        )
+
+    elif name == "rmse":
+        return RMSELoss()
+
+    elif name == "softrmse":
+        return SoftRMSELoss(
             smooth_type=smooth_type,
         )
 
