@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from . import create_soft_label
+
 
 # from https://github.com/Alibaba-MIIL/ASL/blob/main/src/loss_functions/losses.py
 class AsymmetricLoss(nn.Module):
@@ -42,3 +44,15 @@ class AsymmetricLoss(nn.Module):
             loss *= one_sided_w
 
         return -loss.sum()
+
+
+class SoftAsymmetricLoss(nn.Module):
+    def __init__(self, smooth_type):
+        super().__init__()
+        self.smooth_type = smooth_type
+        self.asym_loss = AsymmetricLoss()
+
+    def forward(self, input, target):
+        soft_label = create_soft_label(target, self.smooth_type)
+        loss = self.asym_loss(input, soft_label)
+        return loss

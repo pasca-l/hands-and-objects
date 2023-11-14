@@ -17,8 +17,9 @@ class SoftCELoss(nn.Module):
     def __init__(self, smooth_type):
         super().__init__()
         self.smooth_type = smooth_type
+        self.ce_loss = CELoss()
 
     def forward(self, input, target):
         soft_label = create_soft_label(target, self.smooth_type)
-        loss = nnf.cross_entropy(input, soft_label)
+        loss = self.ce_loss(input, soft_label)
         return loss
