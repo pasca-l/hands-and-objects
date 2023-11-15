@@ -40,7 +40,7 @@ def main():
         transform_mode="base",
         selection="segsec",
         sample_num=16,
-        with_info=True,
+        with_info=False,
         neg_ratio=None,
     )
 
@@ -60,6 +60,7 @@ def main():
 
     trainer = L.Trainer(
         deterministic=True,
+        devices="auto",
         num_nodes=1,
         logger=logger,
     )
