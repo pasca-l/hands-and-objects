@@ -46,10 +46,7 @@ def main():
 
     classifier = KeypointEstModule(
         model_name=args.model,
-    )
-    classifier.model.load_state_dict(
-        torch.load(args.weight_path),
-        strict=True,
+        weight_path=args.weight_path,
     )
 
     logger = L.pytorch.loggers.TensorBoardLogger(

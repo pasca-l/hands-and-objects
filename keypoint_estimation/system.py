@@ -28,10 +28,13 @@ class KeypointEstModule(L.LightningModule):
             out_channel=frame_num,
             with_attention=with_attention,
         )
-        if pretrain_mode is not None:
+        if weight_path is not None:
             param = torch.load(weight_path)
-            param = adjust_param(param, pretrain_mode)
-            self.model.load_state_dict(param, strict=False)
+            if pretrain_mode is not None:
+                param = adjust_param(param, pretrain_mode)
+                self.model.load_state_dict(param, strict=False)
+            else:
+                self.model.load_state_dict(param, strict=True)
 
         self.lossfn = set_lossfn(lossfn_name)
         self.optimizer = self._set_optimizers()
