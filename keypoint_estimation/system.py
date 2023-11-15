@@ -13,6 +13,7 @@ class KeypointEstModule(L.LightningModule):
         model_name="vivit",
         pretrain_mode=None,
         weight_path=None,
+        with_attention=False,
         lossfn_name="asyml",
         frame_num=16,
         lr=1e-4,
@@ -25,6 +26,7 @@ class KeypointEstModule(L.LightningModule):
         self.model = set_model(
             model_name,
             out_channel=frame_num,
+            with_attention=with_attention,
         )
         if pretrain_mode is not None:
             param = torch.load(weight_path)

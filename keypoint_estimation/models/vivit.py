@@ -6,19 +6,22 @@ class ViViT(nn.Module):
     def __init__(
         self,
         out_channel,
+        with_attention,
     ):
         super().__init__()
 
+        self.with_attention = with_attention
+
         config = transformers.VivitConfig(
             num_frames=out_channel,
+            num_labels=out_channel,
         )
-        self.vivit = transformers.VivitModel(config)
-        self.fc_norm = nn.LayerNorm((768,))
-        self.classifier = nn.Linear(in_features=768, out_features=out_channel)
+        self.vivit = transformers.VivitForVideoClassification(config)
 
     def forward(self, x):
-        x = self.vivit(x).last_hidden_state
-        x = self.fc_norm(x.mean(1))
-        x = self.classifier(x)
+        x = self.vivit(x, output_attentions=self.with_attention)
 
-        return x
+        if self.with_attention:
+            return x.logits, x.attentions
+
+        return x.logits

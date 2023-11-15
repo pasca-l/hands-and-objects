@@ -2,12 +2,12 @@ from .baseline import Baseline
 from .vivit import ViViT
 
 
-def set_model(name, out_channel):
+def set_model(name, out_channel, with_attention):
     if name == "baseline":
         return Baseline()
 
     elif name == "vivit":
-        return ViViT(out_channel)
+        return ViViT(out_channel, with_attention)
 
     else:
         raise Exception(f"No model named: {name}")
