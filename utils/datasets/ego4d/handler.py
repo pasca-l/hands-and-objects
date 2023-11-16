@@ -7,8 +7,8 @@ import polars as pl
 
 class AnnotationHandler:
     def __init__(
-        self, dataset_dir, task_name, phase, selection, sample_num, neg_ratio,
-        fast_load=False,
+        self, dataset_dir, task_name, phase, selection, sample_num, seg_arg,
+        neg_ratio, fast_load=False,
     ):
         data_dir = os.path.join(dataset_dir, "ego4d/v2/annotations")
         self.manifest_file = os.path.join(data_dir, "manifest.csv")
@@ -20,6 +20,7 @@ class AnnotationHandler:
         self.phase = phase
         self.selection = selection
         self.sample_num = sample_num
+        self.seg_arg = seg_arg
         self.neg_ratio = neg_ratio
         self.fast_load = fast_load
 
@@ -156,9 +157,7 @@ class AnnotationHandler:
 
         return df_added
 
-    def _format_ann_to_video_segments(
-        self, df, seg_sec=8, seg_ratio=100, fps=30
-    ):
+    def _format_ann_to_video_segments(self, df, fps=30):
         video_uids = []
         parent_frame_num = []
         segment_start_frame = []
@@ -208,10 +207,13 @@ class AnnotationHandler:
                 axis=1,
             )
 
+            # seg_arg is given as a single value, but changes meaning
+            # if selection is "segsec", seg_arg is the length of clip in sec
+            # if selection is "segratio", seg_arg is the division of the video
             if self.selection == "segsec":
-                step = seg_sec * fps
+                step = self.seg_arg * fps
             elif self.selection == "segratio":
-                step = math.ceil(frame_num / seg_ratio)
+                step = math.ceil(frame_num / self.seg_arg)
 
             start_frames = [i for i in range(1, frame_num - step, step)]
             end_frames = [i + step - 1 for i in start_frames]

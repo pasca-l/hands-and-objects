@@ -20,6 +20,7 @@ class Ego4DKeypointEstDataset(Dataset):
         transform=None,
         selection="center",  #["center", "segsec", "segratio"],
         sample_num=16,
+        seg_arg=8,
         with_info=False,
         neg_ratio=None,
     ):
@@ -31,6 +32,7 @@ class Ego4DKeypointEstDataset(Dataset):
         self.with_info = with_info
         self.selection = selection
         self.sample_num = 1 if selection == "center" else sample_num
+        self.seg_arg = seg_arg if selection in ["segsec", "segratio"] else None
 
         self.classes = {
             "other": 0,
@@ -38,7 +40,8 @@ class Ego4DKeypointEstDataset(Dataset):
         }
 
         handler = AnnotationHandler(
-            dataset_dir, task, phase, selection, sample_num, neg_ratio
+            dataset_dir, task, phase, selection, self.sample_num, self.seg_arg,
+            neg_ratio
         )
         self.ann_df = handler()
 
