@@ -22,6 +22,8 @@ class ViViT(nn.Module):
         x = self.vivit(x, output_attentions=self.with_attention)
 
         if self.with_attention:
+            # attentions: torch.Size([b, head_num, seq_size, seq_size])
+            # seq_size is equivalent to tubelet_num + 1
             return x.logits, x.attentions
 
         return x.logits
