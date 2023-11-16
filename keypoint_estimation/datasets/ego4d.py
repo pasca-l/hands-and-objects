@@ -20,7 +20,7 @@ class Ego4DKeypointEstDataset(Dataset):
         transform=None,
         selection="center",  #["center", "segsec", "segratio"],
         sample_num=16,
-        seg_arg=8,
+        seg_arg=None,
         with_info=False,
         neg_ratio=None,
     ):

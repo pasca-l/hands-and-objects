@@ -12,12 +12,13 @@ class KeypointEstDataModule(L.LightningDataModule):
     def __init__(
         self,
         dataset_dir,
-        dataset_mode='ego4d',
+        dataset_mode="ego4d",
         batch_size=4,
-        transform_mode='base',
+        transform_mode="base",
         with_info=False,
-        selection='center',
+        selection="center",
         sample_num=1,
+        seg_arg=None,
         neg_ratio=None,
     ):
         super().__init__()
@@ -29,6 +30,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         self.with_info = with_info
         self.selection = selection
         self.sample_num = sample_num
+        self.seg_arg = seg_arg
         self.neg_ratio = neg_ratio
 
         self.num_workers=os.cpu_count()
@@ -38,7 +40,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         )
 
     def setup(self, stage=None):
-        if self.dataset_mode == 'ego4d':
+        if self.dataset_mode == "ego4d":
             if stage == "fit" or stage is None:
                 self.train_data = Ego4DKeypointEstDataset(
                     dataset_dir=self.dataset_dir,
@@ -46,6 +48,7 @@ class KeypointEstDataModule(L.LightningDataModule):
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
+                    seg_arg=self.seg_arg,
                     neg_ratio=self.neg_ratio,
                 )
                 self.val_data = Ego4DKeypointEstDataset(
@@ -55,6 +58,7 @@ class KeypointEstDataModule(L.LightningDataModule):
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
+                    seg_arg=self.seg_arg,
                     neg_ratio=self.neg_ratio,
                 )
 
@@ -66,6 +70,7 @@ class KeypointEstDataModule(L.LightningDataModule):
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
+                    seg_arg=self.seg_arg,
                     neg_ratio=None,
                 )
 
