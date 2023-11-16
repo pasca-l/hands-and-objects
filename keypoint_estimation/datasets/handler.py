@@ -5,9 +5,9 @@ import numpy as np
 import polars as pl
 
 
-class AnnotationHandler:
+class KeypointEstAnnotationHandler:
     def __init__(
-        self, dataset_dir, task_name, phase, selection, sample_num, seg_arg,
+        self, dataset_dir, task_name, selection, sample_num, seg_arg,
         neg_ratio, fast_load=False,
     ):
         data_dir = os.path.join(dataset_dir, "ego4d/v2/annotations")
@@ -17,7 +17,6 @@ class AnnotationHandler:
             "val": os.path.join(data_dir, f"{task_name}_val.json"),
             "processed": os.path.join(data_dir, f"{task_name}_processed.json"),
         }
-        self.phase = phase
         self.selection = selection
         self.sample_num = sample_num
         self.seg_arg = seg_arg
@@ -26,8 +25,8 @@ class AnnotationHandler:
 
         self.df_full = self._load_full_df()
 
-    def __call__(self):
-        df = self._create_split(self.df_full)[self.phase]
+    def __call__(self, phase="train"):
+        df = self._create_split(self.df_full)[phase]
         df = self._adjust_posneg_ratio(df, self.neg_ratio)
         return df
 

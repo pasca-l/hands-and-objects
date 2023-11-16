@@ -3,6 +3,7 @@ import lightning as L
 from torch.utils.data import DataLoader
 
 from datasets import (
+    KeypointEstAnnotationHandler,
     Ego4DKeypointEstDataset,
     KeypointEstDataPreprocessor,
 )
@@ -16,7 +17,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         batch_size=4,
         transform_mode="base",
         with_info=False,
-        selection="center",
+        selection="center",  #["center", "segsec", "segratio"],
         sample_num=1,
         seg_arg=None,
         neg_ratio=None,
@@ -29,9 +30,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         self.batch_size = batch_size
         self.with_info = with_info
         self.selection = selection
-        self.sample_num = sample_num
-        self.seg_arg = seg_arg
-        self.neg_ratio = neg_ratio
+        self.sample_num = 1 if selection == "center" else sample_num
 
         self.num_workers=os.cpu_count()
 
@@ -39,39 +38,43 @@ class KeypointEstDataModule(L.LightningDataModule):
             transform_mode=transform_mode
         )
 
+        self.handler = KeypointEstAnnotationHandler(
+            dataset_dir=dataset_dir,
+            task_name="fho_oscc-pnr",
+            selection=selection,
+            sample_num=self.sample_num,
+            seg_arg=seg_arg if selection in ["segsec", "segratio"] else None,
+            neg_ratio=neg_ratio,
+        )
+
     def setup(self, stage=None):
         if self.dataset_mode == "ego4d":
             if stage == "fit" or stage is None:
                 self.train_data = Ego4DKeypointEstDataset(
                     dataset_dir=self.dataset_dir,
+                    ann_df=self.handler(phase="train"),
                     transform=self.transform,
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
-                    seg_arg=self.seg_arg,
-                    neg_ratio=self.neg_ratio,
                 )
                 self.val_data = Ego4DKeypointEstDataset(
                     dataset_dir=self.dataset_dir,
-                    phase="val",
+                    ann_df=self.handler(phase="val"),
                     transform=self.transform,
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
-                    seg_arg=self.seg_arg,
-                    neg_ratio=self.neg_ratio,
                 )
 
             if stage == "test":
                 self.test_data = Ego4DKeypointEstDataset(
                     dataset_dir=self.dataset_dir,
-                    phase="test",
+                    ann_df=self.handler(phase="test"),
                     transform=self.transform,
                     with_info=self.with_info,
                     selection=self.selection,
                     sample_num=self.sample_num,
-                    seg_arg=self.seg_arg,
-                    neg_ratio=None,
                 )
 
             if stage == "predict":

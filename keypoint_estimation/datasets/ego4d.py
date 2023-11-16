@@ -1,49 +1,27 @@
 import os
-import sys
-import git
 import cv2
 import numpy as np
 from torch.utils.data import Dataset
 
-git_repo = git.Repo(os.getcwd(), search_parent_directories=True)
-git_root = git_repo.git.rev_parse("--show-toplevel")
-sys.path.append(f"{git_root}/utils/datasets/ego4d")
-from handler import AnnotationHandler
-
 
 class Ego4DKeypointEstDataset(Dataset):
     def __init__(
-        self,
-        dataset_dir,
-        task="fho_oscc-pnr",
-        phase="train",
-        transform=None,
-        selection="center",  #["center", "segsec", "segratio"],
-        sample_num=16,
-        seg_arg=None,
-        with_info=False,
-        neg_ratio=None,
+        self, dataset_dir, ann_df, transform, selection, sample_num, with_info
     ):
         super().__init__()
 
         self.frame_dir = os.path.join(dataset_dir, "ego4d/v2/frames")
         self.video_dir = os.path.join(dataset_dir, "ego4d/v2/full_scale")
+        self.ann_df = ann_df
         self.transform = transform
         self.with_info = with_info
         self.selection = selection
-        self.sample_num = 1 if selection == "center" else sample_num
-        self.seg_arg = seg_arg if selection in ["segsec", "segratio"] else None
+        self.sample_num = sample_num
 
         self.classes = {
             "other": 0,
             "pnr": 1,
         }
-
-        handler = AnnotationHandler(
-            dataset_dir, task, phase, selection, self.sample_num, self.seg_arg,
-            neg_ratio
-        )
-        self.ann_df = handler()
 
     def __len__(self):
         return self.ann_df.height
