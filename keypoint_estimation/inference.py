@@ -40,6 +40,7 @@ def main():
         transform_mode="base",
         selection="segsec",
         sample_num=16,
+        seg_arg=8,
         with_info=False,
         neg_ratio=None,
     )
