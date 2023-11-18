@@ -1,5 +1,6 @@
 from .baseline import Baseline
 from .vivit import ViViT
+from .mctvivit import MCTViViT
 
 
 def set_model(name, out_channel, with_attention):
@@ -8,6 +9,9 @@ def set_model(name, out_channel, with_attention):
 
     elif name == "vivit":
         return ViViT(out_channel, with_attention)
+
+    elif name == "mctvivit":
+        return MCTViViT(out_channel, with_attention)
 
     else:
         raise Exception(f"No model named: {name}")

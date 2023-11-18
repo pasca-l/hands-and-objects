@@ -20,7 +20,7 @@ def option_parser():
     parser.add_argument(
         "-m", "--model", type=str,
         default="vivit",
-        choices=["resnet", "vivit"],
+        choices=["vivit", "mctvivit"],
     )
     parser.add_argument("-l", "--log_dir", type=str, default="./logs/")
     parser.add_argument("-e", "--exp_dir", type=str, default="")
