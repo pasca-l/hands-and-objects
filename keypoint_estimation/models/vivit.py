@@ -23,8 +23,9 @@ class ViViT(nn.Module):
         )
         self.vivit = transformers.VivitModel(config)
 
-        self.norm = nn.LayerNorm(config.hidden_size)
+        self.cls_norm = nn.LayerNorm(config.hidden_size)
         self.cls_head = nn.Linear(config.hidden_size, config.num_labels)
+        self.patch_norm = nn.LayerNorm(num_patches)
         self.patch_head = nn.Linear(num_patches, config.num_labels)
 
     def forward(self, x):
@@ -35,13 +36,12 @@ class ViViT(nn.Module):
         patch_token = x[:,1:,:]
 
         # normal logits from class token
-        cls_token = self.norm(cls_token)
+        cls_token = self.cls_norm(cls_token)
         cls_logits = self.cls_head(cls_token.squeeze(1))
 
         # use patch tokens for logits
         # average across hidden dimension size
-        patch_token = self.norm(patch_token)
-        patch_token = patch_token.mean(dim=-1)
+        patch_token = self.patch_norm(patch_token.mean(dim=-1))
         patch_logits = self.patch_head(patch_token)
 
         logits = patch_logits
