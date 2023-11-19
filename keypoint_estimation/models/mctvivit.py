@@ -47,10 +47,7 @@ class MCTViViTEmbeddings(nn.Module):
         self.cls_token = nn.Parameter(
             torch.zeros(1, config.cls_token_num, config.hidden_size)
         )
-        self.patch_embeddings = TubeletEmbeddings(
-            config.num_frames, config.image_size, config.tubelet_size,
-            config.hidden_size, config.num_channels
-        )
+        self.patch_embeddings = TubeletEmbeddings(config)
 
         self.position_embeddings = nn.Parameter(
             torch.zeros(
@@ -82,7 +79,7 @@ class ViViT(transformers.VivitModel):
         self, config,
     ):
         super().__init__(config)
-        self.embeddings = MCTViViTEmbeddings()
+        self.embeddings = MCTViViTEmbeddings(config)
 
 
 class MCTViViT(nn.Module):
