@@ -105,7 +105,7 @@ class MCTViViT(nn.Module):
         # logits = self.classifier(x.last_hidden_state[:,:cls_num,:])
 
         if self.with_attention:
-            # attentions: torch.Size([b, head_num, seq_size, seq_size])
+            # attentions: torch.Size([b, head_num, seq_size, seq_size]) x blocks
             # seq_size is equivalent to tubelet_num + cls_token
             return logits, x.attentions
 
