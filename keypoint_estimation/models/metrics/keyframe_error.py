@@ -46,7 +46,7 @@ class AverageKeyframeNumError(Metric):
         preds = logits.sigmoid() > self.threshold
         err = torch.abs(preds.sum() - target.sum())
 
-        self.num_err += err
+        self.num_err += err / batch_num
 
     def compute(self):
         return self.num_err
