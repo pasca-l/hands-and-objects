@@ -35,16 +35,21 @@ class ViViT(nn.Module):
         cls_token = x[:,:1,:]
         patch_token = x[:,1:,:]
 
-        # normal logits from class token
+        # common logits from class token
         cls_token = self.cls_norm(cls_token)
         cls_logits = self.cls_head(cls_token.squeeze(1))
+        logits = cls_logits
 
-        # use patch tokens for logits
-        # average across hidden dimension size
-        patch_token = self.patch_norm(patch_token.mean(dim=-1))
-        patch_logits = self.patch_head(patch_token)
+        # # logits from patch token
+        # # average across hidden dimension size
+        # patch_token = self.patch_norm(patch_token.mean(dim=-1))
+        # patch_logits = self.patch_head(patch_token)
+        # logits = patch_logits
 
-        logits = patch_logits
+        # # average across patch token number dimension size
+        # patch_token = self.cls_norm(patch_token.mean(dim=1))
+        # patch_logits = self.cls_head(patch_token)
+        # logits = patch_logits
 
         if self.with_attention:
             # attentions: torch.Size([b, head_num, seq_size, seq_size]) x blocks
