@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from vit import VisionTransformerWithoutHead
+from .vit import VisionTransformerWithoutHead
 
 
 # Multi-Class Token ViViT
