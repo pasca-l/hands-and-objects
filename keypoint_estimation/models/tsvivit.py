@@ -1,9 +1,12 @@
+import torch
 import torch.nn as nn
 
 from vit import VisionTransformerWithoutHead
 
 
-class ViViT(nn.Module):
+# Token Scoring ViViT
+# inspired form https://arxiv.org/pdf/2111.11591.pdf (scorer network)
+class TSViViT(nn.Module):
     def __init__(
         self,
         image_size=224,
@@ -20,11 +23,8 @@ class ViViT(nn.Module):
         intermediate_size=3072,
         with_attn_weights=True,
         with_attention=False,
-        logit_mode="default",  # ["default", "p_hidden", "p_tnum"]
     ):
         super().__init__()
-        self.logit_mode = logit_mode
-        self.num_cls_tokens = num_cls_tokens
         self.with_attention = with_attention
 
         self.vivit = VisionTransformerWithoutHead(
@@ -43,37 +43,49 @@ class ViViT(nn.Module):
             with_attn_weights=with_attn_weights,
         )
 
-        self.cls_head = nn.Sequential(
-            nn.LayerNorm(hidden_size),
-            nn.Linear(hidden_size, num_frames),
-        )
-
-        num_patches = (
+        self.patch_n = (
             (image_size // patch_size[2])
             * (image_size // patch_size[1])
-            * (num_frames // patch_size[0])
         )
-        self.patch_head = nn.Sequential(
-            nn.LayerNorm(num_patches),
-            nn.Linear(num_patches, num_frames),
+        self.patch_t = num_frames // patch_size[0]
+
+        self.local_patch = nn.Sequential(
+            nn.LayerNorm(hidden_size),
+            nn.Linear(hidden_size, hidden_size // 2),
+            nn.GELU(),
+        )
+
+        self.score_head = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size // 2),
+            nn.GELU(),
+            nn.Linear(hidden_size // 2, hidden_size // 4),
+            nn.GELU(),
+            nn.Linear(hidden_size // 4, 1),
+            nn.Flatten(),
+            nn.Linear(num_frames // 2, num_frames),
         )
 
     def forward(self, x):
         x, attn = self.vivit(x)
 
-        cls_token = x[:,:self.num_cls_tokens,:]
-        patch_token = x[:,self.num_cls_tokens:,:]
+        cls_token = x[:,:1,:]
+        patch_token = x[:,1:,:]
 
-        logits = {
-            # common logits from class token
-            "default": self.cls_head(cls_token.squeeze(1)),
+        # average patch tokens to get temporal tokens
+        temp_token = patch_token.reshape(
+            x.size(0), self.patch_t, self.patch_n, -1
+        )
+        x = torch.mean(temp_token, dim=2)
 
-            # average across patch token hidden dimension size
-            "p_hidden": self.patch_head(patch_token.mean(dim=-1)),
+        # scores of temporal tokens
+        local_x = self.local_patch(x)
+        global_x = torch.mean(local_x, dim=1, keepdim=True)
 
-            # average across patch token number dimension size
-            "p_tnum": self.cls_head(patch_token.mean(dim=1)),
-        }[self.logit_mode]
+        x = torch.cat([local_x, global_x.expand(local_x.shape)], dim=-1)
+        logits = self.score_head(x)
+
+        # min-max normalization of scores
+        # logits = (logits - logits.min(axis=-1, keepdim=True).values) / (logits.max(axis=-1, keepdim=True).values - logits.min(axis=-1, keepdim=True).values + 1e-5)
 
         if self.with_attention:
             # attentions: torch.Size([b, head_num, seq_size, seq_size]) x blocks

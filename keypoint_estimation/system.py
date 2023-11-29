@@ -18,6 +18,7 @@ class KeypointEstModule(L.LightningModule):
         frame_num=16,
         lr=1e-4,
         mode="multilabel",
+        **kwargs,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -25,8 +26,7 @@ class KeypointEstModule(L.LightningModule):
 
         self.model = set_model(
             model_name,
-            out_channel=frame_num,
-            with_attention=with_attention,
+            **kwargs,
         )
         if weight_path is not None:
             param = torch.load(weight_path)

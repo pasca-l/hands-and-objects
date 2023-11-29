@@ -1,17 +1,21 @@
 from .baseline import Baseline
 from .vivit import ViViT
+from .tsvivit import TSViViT
 from .mctvivit import MCTViViT
 
 
-def set_model(name, out_channel, with_attention):
+def set_model(name, **kwargs):
     if name == "baseline":
         return Baseline()
 
     elif name == "vivit":
-        return ViViT(out_channel, with_attention)
+        return ViViT(**kwargs)
+
+    elif name == "tsvivit":
+        return TSViViT(**kwargs)
 
     elif name == "mctvivit":
-        return MCTViViT(out_channel, with_attention)
+        return MCTViViT(**kwargs)
 
     else:
         raise Exception(f"No model named: {name}")

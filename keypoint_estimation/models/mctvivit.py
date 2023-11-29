@@ -1,112 +1,60 @@
-import torch
 import torch.nn as nn
-import transformers
+
+from vit import VisionTransformerWithoutHead
 
 
-class TubeletEmbeddings(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.num_frames = config.num_frames
-        self.image_size = config.image_size
-        self.patch_size = config.tubelet_size
-        self.num_patches = (
-            (self.image_size // self.patch_size[2])
-            * (self.image_size // self.patch_size[1])
-            * (self.num_frames // self.patch_size[0])
-        )
-        self.embed_dim = config.hidden_size
-
-        self.projection = nn.Conv3d(
-            config.num_channels, config.hidden_size,
-            kernel_size=config.tubelet_size, stride=config.tubelet_size,
-        )
-
-    def forward(self, pixel_values):
-        # torch.Size([b, frame_num, ch, h, w])
-        _, _, _, h, w = pixel_values.shape
-        if h != self.image_size or w != self.image_size:
-            raise ValueError(
-                f"Input image size ({h}*{w}) doesn't match model" + \
-                f"({self.image_size}*{self.image_size})."
-            )
-
-        # permute to torch.Size([b, ch, frame_num, h, w])
-        pixel_values = pixel_values.permute(0, 2, 1, 3, 4)
-
-        # convolve to torch.Size([b, hidden_size, (num_patches)])
-        x = self.projection(pixel_values)
-        # convolve to torch.Size([b, -1, hidden_size])
-        x = self.projection(pixel_values).flatten(2).transpose(1, 2)
-        return x
-
-
-class MCTViViTEmbeddings(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-
-        self.cls_token = nn.Parameter(
-            torch.zeros(1, config.cls_token_num, config.hidden_size)
-        )
-        self.patch_embeddings = TubeletEmbeddings(config)
-
-        self.position_embeddings = nn.Parameter(
-            torch.zeros(
-                1,
-                self.patch_embeddings.num_patches + config.cls_token_num,
-                config.hidden_size,
-            )
-        )
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-
-    def forward(self, pixel_values):
-        batch_size = pixel_values.shape[0]
-        embeddings = self.patch_embeddings(pixel_values)
-
-        cls_tokens = self.cls_token.tile([batch_size, 1, 1])
-
-        embeddings = torch.cat((cls_tokens, embeddings), dim=1)
-
-        # add positional encoding to each token
-        embeddings = embeddings + self.position_embeddings
-
-        embeddings = self.dropout(embeddings)
-
-        return embeddings
-
-
-class ViViT(transformers.VivitModel):
-    def __init__(
-        self, config,
-    ):
-        super().__init__(config)
-        self.embeddings = MCTViViTEmbeddings(config)
-
-
+# Multi-Class Token ViViT
+# inspired from https://arxiv.org/pdf/2203.02891.pdf (using multiple cls token)
 class MCTViViT(nn.Module):
-    def __init__(self, out_channel, with_attention):
+    def __init__(
+        self,
+        image_size=224,
+        num_frames=16,
+        patch_size=[2, 16, 16],
+        in_channels=3,
+        num_cls_tokens=1,
+        hidden_size=768,
+        hidden_dropout_prob=0.0,
+        num_blocks=12,
+        num_heads=12,
+        attention_dropout_prob=0.0,
+        qkv_bias=False,
+        intermediate_size=3072,
+        with_attn_weights=True,
+        with_attention=False,
+    ):
         super().__init__()
-
-        self.cls_token_num = out_channel
+        self.num_cls_tokens = num_cls_tokens
         self.with_attention = with_attention
 
-        config = transformers.VivitConfig(
-            num_frames=out_channel,
-            num_labels=1,
-            cls_token_num=16,
+        self.vivit = VisionTransformerWithoutHead(
+            image_size=image_size,
+            num_frames=num_frames,
+            patch_size=patch_size,
+            in_channels=in_channels,
+            num_cls_tokens=num_cls_tokens,
+            hidden_size=hidden_size,
+            hidden_dropout_prob=hidden_dropout_prob,
+            num_blocks=num_blocks,
+            num_heads=num_heads,
+            attention_dropout_prob=attention_dropout_prob,
+            qkv_bias=qkv_bias,
+            intermediate_size=intermediate_size,
+            with_attn_weights=with_attn_weights,
         )
-        self.vivit = ViViT(config)
-        # self.classifier = nn.Linear(config.hidden_size, config.num_labels)
 
     def forward(self, x):
-        x = self.vivit(x, output_attentions=self.with_attention)
+        x, attn = self.vivit(x)
 
-        # last state: torch.Size([b, tubelet_num + cls_token, hidden_size])
-        logits = x.last_hidden_state[:,:self.cls_token_num,:].mean(dim=-1)
-        # logits = self.classifier(x.last_hidden_state[:,:cls_num,:])
+        cls_token = x[:,:self.num_cls_tokens,:]
+
+        # multi-class token (taking simple mean across hidden_dim)
+        
+        logits = cls_token.mean(dim=-1)
 
         if self.with_attention:
             # attentions: torch.Size([b, head_num, seq_size, seq_size]) x blocks
-            # seq_size is equivalent to tubelet_num + cls_token
-            return logits, x.attentions
+            # seq_size is equivalent to patch_num + 1
+            return logits, attn
 
         return logits

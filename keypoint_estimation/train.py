@@ -20,7 +20,7 @@ def option_parser():
     parser.add_argument(
         "-m", "--model", type=str,
         default="vivit",
-        choices=["vivit", "mctvivit"],
+        choices=["vivit", "mctvivit", "tsvivit"],
     )
     parser.add_argument("-l", "--log_dir", type=str, default="./logs/")
     parser.add_argument("-e", "--exp_dir", type=str, default="")
@@ -47,6 +47,19 @@ def main():
 
     classifier = KeypointEstModule(
         model_name=args.model,
+        image_size=224,
+        num_frames=16,
+        patch_size=[2, 16, 16],
+        in_channels=3,
+        num_cls_tokens=1,
+        hidden_size=768,
+        hidden_dropout_prob=0.0,
+        num_blocks=12,
+        num_heads=12,
+        attention_dropout_prob=0.0,
+        qkv_bias=False,
+        intermediate_size=3072,
+        with_attn_weights=False,
     )
 
     log_id = datetime.datetime.now().isoformat(timespec="seconds")
