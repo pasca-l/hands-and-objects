@@ -59,7 +59,7 @@ def main():
         attention_dropout_prob=0.0,
         qkv_bias=False,
         intermediate_size=3072,
-        with_attn_weights=False,
+        with_attn_weights=True,
     )
 
     log_id = datetime.datetime.now().isoformat(timespec="seconds")
