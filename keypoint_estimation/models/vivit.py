@@ -66,7 +66,7 @@ class ViViT(nn.Module):
 
         logits = {
             # common logits from class token
-            "default": self.cls_head(cls_token.squeeze(1)),
+            "default": self.cls_head(cls_token).squeeze(1),
 
             # average across patch token hidden dimension size
             "p_hidden": self.patch_head(patch_token.mean(dim=-1)),
