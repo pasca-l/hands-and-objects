@@ -12,7 +12,7 @@ class MCTViViT(nn.Module):
         num_frames=16,
         patch_size=[2, 16, 16],
         in_channels=3,
-        num_cls_tokens=1,
+        num_cls_tokens=16,
         hidden_size=768,
         hidden_dropout_prob=0.0,
         num_blocks=12,
@@ -49,7 +49,6 @@ class MCTViViT(nn.Module):
         cls_token = x[:,:self.num_cls_tokens,:]
 
         # multi-class token (taking simple mean across hidden_dim)
-        
         logits = cls_token.mean(dim=-1)
 
         if self.with_attention:
