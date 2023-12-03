@@ -103,6 +103,6 @@ class KeypointEstModule(L.LightningModule):
 
     def _calc_metrics(self, output, target, metalabel):
         metrics = self.metrics(output, target)
-        meta_metrics = self.meta_metrics(output, metalabel)
+        meta_metrics = self.meta_metrics(output, target, metalabel)
 
         return metrics | meta_metrics

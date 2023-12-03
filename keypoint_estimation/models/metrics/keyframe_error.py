@@ -2,7 +2,7 @@ import torch
 from torchmetrics import Metric
 
 
-class AverageNearestKeyframeError(Metric):
+class AverageGlobalNearestKeyframeError(Metric):
     def __init__(self, threshold=0.5, in_sec=True, fps=30):
         super().__init__()
         self.threshold = threshold
@@ -13,18 +13,36 @@ class AverageNearestKeyframeError(Metric):
             "nearest_err", default=torch.tensor(0.0), dist_reduce_fx="sum"
         )
 
-    def update(self, logits, metalabel):
-        batch_num = logits.shape[0]
-
+    def update(self, logits, target, metalabel):
         # assume input as logits
         preds = logits.sigmoid() > self.threshold
-        err = (preds * metalabel).sum() / preds.sum() \
-                if preds.sum() > 0 else 0.0
+        err = (preds * metalabel).sum(dim=1) / preds.sum(dim=1)
+        err = err.nan_to_num().mean()
 
-        if self.in_sec:
-            self.nearest_err += err / self.fps
-        else:
-            self.nearest_err += err
+        self.nearest_err += (err / self.fps) if self.in_sec else err
+
+    def compute(self):
+        return self.nearest_err
+
+
+class AverageLocalNearestKeyframeError(Metric):
+    def __init__(self, threshold=0.5, in_sec=True, fps=30):
+        super().__init__()
+        self.threshold = threshold
+        self.in_sec = in_sec
+        self.fps = fps
+
+        self.add_state(
+            "nearest_err", default=torch.tensor(0.0), dist_reduce_fx="sum"
+        )
+
+    def update(self, logits, target, metalabel):
+        # assume input as logits
+        preds = logits.sigmoid() > self.threshold
+        err = (preds * metalabel).sum(dim=1) / preds.sum(dim=1)
+        err = (err.nan_to_num() * target.sum(dim=1).clamp(max=1)).mean()
+
+        self.nearest_err += (err / self.fps) if self.in_sec else err
 
     def compute(self):
         return self.nearest_err
