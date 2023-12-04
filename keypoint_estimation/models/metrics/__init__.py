@@ -6,6 +6,7 @@ from .stats import (
     FPPercentage,
     TNPercentage,
     FNPercentage,
+    MeanAveragePrecision,
 )
 from .keyframe_error import (
     AverageGlobalNearestKeyframeError,
@@ -25,7 +26,7 @@ def set_metrics(mode="multilabel", frame_num=16):
         torchmetrics.Precision(task=mode, num_labels=frame_num),
         torchmetrics.Recall(task=mode, num_labels=frame_num),
         torchmetrics.F1Score(task=mode, num_labels=frame_num),
-        torchmetrics.AveragePrecision(task=mode, num_labels=frame_num),
+        MeanAveragePrecision(task=mode, num_labels=frame_num),
         AverageKeyframeNumError(),
     ])
 
