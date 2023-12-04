@@ -3,6 +3,23 @@ from torchmetrics import Metric
 import torchmetrics.functional as tmf
 
 
+class TotalDataNum(Metric):
+    def __init__(self):
+        super().__init__()
+
+        self.add_state(
+            "total", default=torch.tensor(0), dist_reduce_fx="sum"
+        )
+
+    def update(self, preds, target):
+        batch_num, frame_num = preds.shape
+
+        self.total += batch_num * frame_num
+
+    def compute(self):
+        return self.total
+
+
 class TPPercentage(Metric):
     def __init__(self, task, num_labels):
         super().__init__()

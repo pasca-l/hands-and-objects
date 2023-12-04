@@ -1,6 +1,7 @@
 import torchmetrics
 
 from .stats import (
+    TotalDataNum,
     TPPercentage,
     FPPercentage,
     TNPercentage,
@@ -15,6 +16,7 @@ from .keyframe_error import (
 
 def set_metrics(mode="multilabel", frame_num=16):
     metrics = torchmetrics.MetricCollection([
+        TotalDataNum(),
         TPPercentage(task=mode, num_labels=frame_num),
         FPPercentage(task=mode, num_labels=frame_num),
         TNPercentage(task=mode, num_labels=frame_num),
