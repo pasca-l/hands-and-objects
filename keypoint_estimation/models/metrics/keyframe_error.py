@@ -16,8 +16,8 @@ class AverageGlobalNearestKeyframeError(Metric):
     def update(self, logits, target, metalabel):
         # assume input as logits
         preds = logits.sigmoid() > self.threshold
-        err = (preds * metalabel).sum(dim=1) / preds.sum(dim=1)
-        err = err.nan_to_num().mean()
+        err = ((preds * metalabel).sum(dim=1) / preds.sum(dim=1)).nan_to_num()
+        err = err.mean()
 
         self.nearest_err += (err / self.fps) if self.in_sec else err
 
@@ -39,11 +39,11 @@ class AverageLocalNearestKeyframeError(Metric):
     def update(self, logits, target, metalabel):
         # assume input as logits
         preds = logits.sigmoid() > self.threshold
-        err = (preds * metalabel).sum(dim=1) / preds.sum(dim=1)
+        err = ((preds * metalabel).sum(dim=1) / preds.sum(dim=1)).nan_to_num()
 
         # exclude error with labels without keyframe
         inclusion = target.sum(dim=1).clamp(max=1)
-        err = (err.nan_to_num() * inclusion).sum() / inclusion.sum()
+        err = ((err * inclusion).sum() / inclusion.sum()).nan_to_num()
 
         self.nearest_err += (err / self.fps) if self.in_sec else err
 
