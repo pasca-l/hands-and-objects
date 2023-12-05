@@ -13,7 +13,6 @@ class KeypointEstModule(L.LightningModule):
         model_name="vivit",
         pretrain_mode=None,
         weight_path=None,
-        with_attention=False,
         lossfn_name="asyml",
         frame_num=16,
         lr=1e-4,
