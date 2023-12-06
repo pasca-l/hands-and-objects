@@ -14,16 +14,16 @@ from .keyframe_error import (
 )
 
 
-def set_metrics(mode="multilabel", frame_num=16):
+def set_metrics(mode="multilabel", num_labels=16):
     metrics = torchmetrics.MetricCollection([
         TPPercentage(task=mode),
         FPPercentage(task=mode),
         TNPercentage(task=mode),
         FNPercentage(task=mode),
-        torchmetrics.Accuracy(task=mode, num_labels=frame_num),
-        torchmetrics.Precision(task=mode, num_labels=frame_num),
-        torchmetrics.Recall(task=mode, num_labels=frame_num),
-        torchmetrics.F1Score(task=mode, num_labels=frame_num),
+        torchmetrics.Accuracy(task=mode, num_labels=num_labels),
+        torchmetrics.Precision(task=mode, num_labels=num_labels),
+        torchmetrics.Recall(task=mode, num_labels=num_labels),
+        torchmetrics.F1Score(task=mode, num_labels=num_labels),
         MeanAveragePrecision(task=mode),
         AverageKeyframeNumError(),
     ])

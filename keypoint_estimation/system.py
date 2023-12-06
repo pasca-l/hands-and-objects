@@ -14,9 +14,9 @@ class KeypointEstModule(L.LightningModule):
         pretrain_mode=None,
         weight_path=None,
         lossfn_name="asyml",
-        frame_num=16,
         lr=1e-4,
         mode="multilabel",
+        num_labels=16,
         **kwargs,
     ):
         super().__init__()
@@ -38,7 +38,7 @@ class KeypointEstModule(L.LightningModule):
         self.lossfn = set_lossfn(lossfn_name)
         self.optimizer = self._set_optimizers()
 
-        self.metrics = set_metrics(mode=mode, frame_num=frame_num)
+        self.metrics = set_metrics(mode=mode, num_labels=num_labels)
         self.meta_metrics = set_meta_metrics()
 
         self.hparams.update({"model": self.model.__class__.__name__})
