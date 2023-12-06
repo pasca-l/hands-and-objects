@@ -7,7 +7,8 @@ class ViViT(nn.Module):
     def __init__(
         self,
         image_size=224,
-        num_frames=16,
+        num_in_frames=16,
+        num_out_frames=16,
         patch_size=[2, 16, 16],
         in_channels=3,
         num_cls_tokens=1,
@@ -29,7 +30,7 @@ class ViViT(nn.Module):
 
         self.vivit = VisionTransformerWithoutHead(
             image_size=image_size,
-            num_frames=num_frames,
+            num_frames=num_in_frames,
             patch_size=patch_size,
             in_channels=in_channels,
             num_cls_tokens=num_cls_tokens,
@@ -45,17 +46,17 @@ class ViViT(nn.Module):
 
         self.cls_head = nn.Sequential(
             nn.LayerNorm(hidden_size),
-            nn.Linear(hidden_size, num_frames),
+            nn.Linear(hidden_size, num_out_frames),
         )
 
         num_patches = (
             (image_size // patch_size[2])
             * (image_size // patch_size[1])
-            * (num_frames // patch_size[0])
+            * (num_in_frames // patch_size[0])
         )
         self.patch_head = nn.Sequential(
             nn.LayerNorm(num_patches),
-            nn.Linear(num_patches, num_frames),
+            nn.Linear(num_patches, num_out_frames),
         )
 
     def forward(self, x):
@@ -67,6 +68,10 @@ class ViViT(nn.Module):
         logits = {
             # common logits from class token
             "default": self.cls_head(cls_token).squeeze(1),
+
+            # average across patch token hidden dimension size,
+            # and use as it is
+            "p_direct": patch_token.mean(dim=-1),
 
             # average across patch token hidden dimension size
             "p_hidden": self.patch_head(patch_token.mean(dim=-1)),
