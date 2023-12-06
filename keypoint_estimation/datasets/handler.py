@@ -162,6 +162,8 @@ class KeypointEstAnnotationHandler:
         segment_start_frame = []
         segment_end_frame = []
         keyframes = []
+        hardlabels = []
+        softlabels = []
         nearest_keyframe_dist = []
 
         iterator = df.select(
@@ -171,7 +173,8 @@ class KeypointEstAnnotationHandler:
         ).iter_rows()
 
         for [vid] in iterator:
-            frame_num = df.select(
+            # number of frames in the whole video
+            total_frames = df.select(
                 pl.when(
                     pl.col("video_uid") == vid
                 ).then(
@@ -179,6 +182,7 @@ class KeypointEstAnnotationHandler:
                 )
             ).unique().drop_nulls().item()
 
+            # pnr frame numbers in the video
             pnr_frames = df.select(
                 pl.when(
                     pl.col("video_uid") == vid
@@ -190,7 +194,22 @@ class KeypointEstAnnotationHandler:
             # exclude video which does not have a single PNR frame,
             # as nearest PNR distance can not be calculated
             if len(pnr_frames) == 0:
+                print(f"Excluding {vid}, due to no annotated PNR present")
                 continue
+
+            # create hard label from whole video
+            hards = np.zeros(total_frames)
+            hards[pnr_frames] = 1
+
+            # create soft label from whole video
+            # create 1d gauss distribution with -3σ<x<3σ fit within acceptance
+            mu, sigma, amp = 0, 1, 1
+            acceptance = 5
+            x = np.linspace(-3 * sigma, 3 * sigma, acceptance)
+            gauss = amp * np.exp(-(x - mu) ** 2 / (2 * sigma ** 2))
+            # convolute hard label with gauss distribution,
+            # and clip with amplitude 1, for neighboring effect
+            softs = np.convolve(hards, gauss, mode="same")
 
             # np.arange()[:,np.newaxis] - np.array(),
             # creates arrays containing distance from a given pivot
@@ -202,7 +221,7 @@ class KeypointEstAnnotationHandler:
             #        ])
             #     -> np.min() vertically, would give the nearest PNR distance
             pnr_dist = np.min(
-                np.abs(np.arange(1, frame_num+1)[:,np.newaxis] - pnr_frames),
+                np.abs(np.arange(1, total_frames+1)[:,np.newaxis] - pnr_frames),
                 axis=1,
             )
 
@@ -212,18 +231,24 @@ class KeypointEstAnnotationHandler:
             if self.selection == "segsec":
                 step = self.seg_arg * fps
             elif self.selection == "segratio":
-                step = math.ceil(frame_num / self.seg_arg)
+                step = math.ceil(total_frames / self.seg_arg)
 
-            start_frames = [i for i in range(1, frame_num - step, step)]
+            start_frames = [i for i in range(1, total_frames - step, step)]
             end_frames = [i + step - 1 for i in start_frames]
 
             # recording values into lists
             record_num = len(start_frames)
             video_uids.extend([vid for _ in range(record_num)])
-            parent_frame_num.extend([frame_num for _ in range(record_num)])
+            parent_frame_num.extend([total_frames for _ in range(record_num)])
             keyframes.extend([
                 pnr_frames[np.where((pnr_frames >= f) & (pnr_frames < f+step))]
                 for f in start_frames
+            ])
+            hardlabels.extend([
+                hards[f-1:f+step] for f in start_frames
+            ])
+            softlabels.extend([
+                softs[f-1:f+step] for f in start_frames
             ])
             nearest_keyframe_dist.extend([
                 pnr_dist[f-1:f+step] for f in start_frames
@@ -237,6 +262,8 @@ class KeypointEstAnnotationHandler:
             "parent_frame_num": parent_frame_num,
             "segment_start_frame": segment_start_frame,
             "segment_end_frame": segment_end_frame,
+            "hard_label": hardlabels,
+            "soft_label": softlabels,
             "nearest_pnr_diff": nearest_keyframe_dist,
         }).with_columns(
             pl.when(
