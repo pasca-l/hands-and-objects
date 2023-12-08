@@ -22,7 +22,7 @@ class Ego4DKeypointEstDataset(Dataset):
         return self.ann_df.height
 
     def __getitem__(self, index):
-        [info] = self.ann_df[index].to_dict()
+        [info] = self.ann_df[index].to_dicts()
 
         frame_nums = self._select_frames(info)
 
