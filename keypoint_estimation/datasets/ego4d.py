@@ -18,16 +18,11 @@ class Ego4DKeypointEstDataset(Dataset):
         self.selection = selection
         self.sample_num = sample_num
 
-        self.classes = {
-            "other": 0,
-            "pnr": 1,
-        }
-
     def __len__(self):
         return self.ann_df.height
 
     def __getitem__(self, index):
-        info = self.ann_df[index]
+        [info] = self.ann_df[index].to_dict()
 
         frame_nums = self._select_frames(info)
 
@@ -36,7 +31,7 @@ class Ego4DKeypointEstDataset(Dataset):
 
         frames, labels = self.transform(frames, labels)
 
-        metalabels = info.select("sample_pnr_diff").item().to_list()
+        metalabels = info["sample_pnr_diff"] if "sample_pnr_diff" in info else 0
         _, metalabels = self.transform(None, metalabels)
 
         if self.with_info:
@@ -45,7 +40,7 @@ class Ego4DKeypointEstDataset(Dataset):
         return frames, labels, metalabels
 
     def _get_frames(self, info, frame_nums):
-        video_uid = info.select("video_uid").item()
+        video_uid = info["video_uid"]
 
         frames = []
         for num in frame_nums:
@@ -65,29 +60,8 @@ class Ego4DKeypointEstDataset(Dataset):
 
         return np.array(frames)
 
-    def _get_labels(self, info, frame_nums):
-        if self.selection == "center":
-            pnr = info.select("parent_pnr_frame").item()
-            labels = np.where(
-                frame_nums == pnr, self.classes["pnr"], self.classes["other"],
-            )
-
-        elif self.selection in ["segsec", "segratio"]:
-            label_idx = info.select("label_indicies").item()
-            labels = np.zeros(self.sample_num)
-            labels[label_idx] = self.classes["pnr"]
-
-        return labels
+    def _get_labels(self, info):
+        return np.array(info["hard_label"])
 
     def _select_frames(self, info):
-        frame_nums = []
-
-        if self.selection == "center":
-            frame_num = info.select("center_frame").item()
-            frame_nums.append(frame_num)
-
-        elif self.selection in ["segsec", "segratio"]:
-            sample_frames = info.select("sample_frames").item().to_list()
-            frame_nums.extend(sample_frames)
-
-        return np.array(frame_nums)
+        return np.array(info["sample_frames"])
