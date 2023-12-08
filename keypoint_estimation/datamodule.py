@@ -21,6 +21,7 @@ class KeypointEstDataModule(L.LightningDataModule):
         sample_num=1,
         seg_arg=None,
         neg_ratio=None,
+        fast_load=False,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -45,6 +46,7 @@ class KeypointEstDataModule(L.LightningDataModule):
             sample_num=self.sample_num,
             seg_arg=seg_arg if selection in ["segsec", "segratio"] else None,
             neg_ratio=neg_ratio,
+            fast_load=fast_load,
         )
 
     def setup(self, stage=None):
