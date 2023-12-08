@@ -27,7 +27,7 @@ class Ego4DKeypointEstDataset(Dataset):
         frame_nums = self._select_frames(info)
 
         frames = self._get_frames(info, frame_nums)
-        labels = self._get_labels(info, frame_nums)
+        labels = self._get_labels(info)
 
         frames, labels = self.transform(frames, labels)
 
