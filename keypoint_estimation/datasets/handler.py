@@ -282,22 +282,22 @@ class KeypointEstAnnotationHandler:
                 ["parent_pnr_frame", "sample_frames"],
             ).apply(
                 lambda c: [
-                    np.argmin(np.abs(np.array(c["sample_frames"]) - i))
-                    for i in c["parent_pnr_frame"]
+                    np.array(c["sample_frames"]).flatten()[
+                        np.argmin(np.abs(
+                            np.array(c["sample_frames"]).flatten() - pnr),
+                        )
+                    ]
+                    for pnr in c["parent_pnr_frame"]
                 ]
-            ).alias("label_indicies")
+            ).alias("label_frames")
         )
         df = df.with_columns(
             pl.struct(
-                ["sample_frames", "label_indicies"]
+                ["sample_frames", "label_frames"]
             ).apply(
                 lambda c: [
-                    np.where(
-                        np.isin(
-                            np.arange(len(sample)),
-                            c["label_indicies"],
-                        ), 1, np.zeros(len(sample))
-                    ) for sample in c["sample_frames"]
+                    np.isin(np.array(sample), c["label_frames"]) * 1
+                    for sample in c["sample_frames"]
                 ]
             ).alias("hard_label")
         )
@@ -315,11 +315,13 @@ class KeypointEstAnnotationHandler:
             ).apply(
                 # convolute hard label with gauss distribution,
                 # and clip with amplitude 1, for neighboring effect
-                lambda c: [
+                lambda c: np.clip(
                     np.convolve(
-                        hard, gauss, mode="same",
-                    ) for hard in c["hard_label"]
-                ],
+                        np.array(c["hard_label"]).flatten(), gauss, mode="same"
+                    ), 0, 1
+                ).reshape(
+                    np.array(c["hard_label"]).shape
+                ).tolist()
             ).alias("soft_label"),
         )
 
@@ -366,7 +368,7 @@ class KeypointEstAnnotationHandler:
             pl.col("state_change"),
         ).with_columns([
             pl.col("video_uid").apply(lambda _: []).cast(pl.List(pl.Int64)).alias("parent_pnr_frame"),
-            pl.col("video_uid").apply(lambda c: np.zeros(self.sample_num).tolist()).alias("hard_label"),
+            pl.col("video_uid").apply(lambda c: np.zeros(self.sample_num).tolist()).cast(pl.List(pl.Int64)).alias("hard_label"),
             pl.col("video_uid").apply(lambda c: np.zeros(self.sample_num).tolist()).alias("soft_label"),
             pl.struct(
                 ["segment_start_frame", "segment_end_frame"],
