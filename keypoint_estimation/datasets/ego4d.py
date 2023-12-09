@@ -35,7 +35,7 @@ class Ego4DKeypointEstDataset(Dataset):
         _, metalabels = self.transform(None, metalabels)
 
         if self.with_info:
-            return frames, labels, metalabels, info.rows(named=True)
+            return frames, labels, metalabels, info
 
         return frames, labels, metalabels
 
