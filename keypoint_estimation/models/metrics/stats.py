@@ -89,29 +89,3 @@ class FNPercentage(Metric):
 
     def compute(self):
         return self.fn_pct
-
-
-class MeanAveragePrecision(Metric):
-    def __init__(self, task):
-        super().__init__()
-        self.task = task
-
-        self.add_state(
-            "ap", default=torch.tensor(0.0), dist_reduce_fx="sum"
-        )
-        self.add_state(
-            "total", default=torch.tensor(0), dist_reduce_fx="sum"
-        )
-
-    def update(self, preds, target):
-        _, frame_num = preds.shape
-
-        target = target.type(torch.int32)
-        ap = tmf.average_precision(
-            preds, target, task=self.task, num_labels=frame_num
-        ).nan_to_num()
-
-        self.ap += ap
-
-    def compute(self):
-        return self.ap
