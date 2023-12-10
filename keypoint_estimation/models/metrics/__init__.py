@@ -13,18 +13,22 @@ from .keyframe_error import (
 )
 
 
-def set_metrics(**kwargs):
+def set_metrics(task="multilabel", num_labels=16, thresholds=10):
     metrics = torchmetrics.MetricCollection([
-        TPPercentage(**kwargs),
-        FPPercentage(**kwargs),
-        TNPercentage(**kwargs),
-        FNPercentage(**kwargs),
-        torchmetrics.Accuracy(**kwargs),
-        torchmetrics.Precision(**kwargs),
-        torchmetrics.Recall(**kwargs),
-        torchmetrics.F1Score(**kwargs),
-        torchmetrics.AveragePrecision(**kwargs),
-        torchmetrics.AUROC(**kwargs),
+        TPPercentage(task=task),
+        FPPercentage(task=task),
+        TNPercentage(task=task),
+        FNPercentage(task=task),
+        torchmetrics.Accuracy(task=task, num_labels=num_labels),
+        torchmetrics.Precision(task=task, num_labels=num_labels),
+        torchmetrics.Recall(task=task, num_labels=num_labels),
+        torchmetrics.F1Score(task=task, num_labels=num_labels),
+        torchmetrics.AveragePrecision(
+            task=task, num_labels=num_labels, thresholds=thresholds
+        ),
+        torchmetrics.AUROC(
+            task=task, num_labels=num_labels, thresholds=thresholds
+        ),
         AverageKeyframeNumError(),
     ])
 

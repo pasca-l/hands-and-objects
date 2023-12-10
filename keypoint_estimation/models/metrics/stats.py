@@ -4,7 +4,7 @@ import torchmetrics.functional as tmf
 
 
 class TPPercentage(Metric):
-    def __init__(self, task, **kwargs):
+    def __init__(self, task):
         super().__init__()
         self.task = task
 
@@ -26,7 +26,7 @@ class TPPercentage(Metric):
 
 
 class FPPercentage(Metric):
-    def __init__(self, task, **kwargs):
+    def __init__(self, task):
         super().__init__()
         self.task = task
 
@@ -48,7 +48,7 @@ class FPPercentage(Metric):
 
 
 class TNPercentage(Metric):
-    def __init__(self, task, **kwargs):
+    def __init__(self, task):
         super().__init__()
         self.task = task
 
@@ -70,7 +70,7 @@ class TNPercentage(Metric):
 
 
 class FNPercentage(Metric):
-    def __init__(self, task, **kwargs):
+    def __init__(self, task):
         super().__init__()
         self.task = task
 
