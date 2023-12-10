@@ -38,7 +38,11 @@ class KeypointEstModule(L.LightningModule):
         self.lossfn = set_lossfn(lossfn_name)
         self.optimizer = self._set_optimizers()
 
-        self.metrics = set_metrics(mode=mode, num_labels=num_labels)
+        self.metrics = set_metrics(
+            task=mode,
+            num_labels=num_labels,
+            thresholds=10,
+        )
         self.meta_metrics = set_meta_metrics()
 
         self.hparams.update({"model": self.model.__class__.__name__})
@@ -87,16 +91,16 @@ class KeypointEstModule(L.LightningModule):
         # expected frames: torch.Size([b, frame_num, ch, w, h]) as double
         logits = self.model(frames)
 
+        # expected labels: torch.Size([b, frame_num]) as floating point
+        # expected logits: torch.Size([b, frame_num])
+        loss = self.lossfn(logits, labels)
+        self.log(f"loss/{phase}", loss, on_step=False, on_epoch=True)
+
         # metalabels: info.select("sample_pnr_diff")
         metalabels = batch[2]
         metrics = self._calc_metrics(logits, labels, metalabels)
         metric_dict = {f"metrics/{phase}/{k}":v for k,v in metrics.items()}
         self.log_dict(metric_dict, on_step=False, on_epoch=True)
-
-        # expected labels: torch.Size([b, frame_num]) as floating point
-        # expected logits: torch.Size([b, frame_num])
-        loss = self.lossfn(logits, labels)
-        self.log(f"loss/{phase}", loss, on_step=False, on_epoch=True)
 
         return loss
 
