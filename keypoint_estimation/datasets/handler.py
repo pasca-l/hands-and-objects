@@ -287,7 +287,14 @@ class KeypointEstAnnotationHandler:
                             np.array(c["sample_frames"]).flatten() - pnr),
                         )
                     ]
-                    for pnr in c["parent_pnr_frame"]
+                    # some PNR are annotated out of the range of segments,
+                    # PNR is considered only up to the max value of sample
+                    for pnr in (
+                        np.array(c["parent_pnr_frame"])[
+                            np.array(c["parent_pnr_frame"]) < \
+                            np.array(c["sample_frames"]).max()
+                        ]
+                    )
                 ]
             ).alias("label_frames")
         )
@@ -345,7 +352,7 @@ class KeypointEstAnnotationHandler:
                     np.array(c["parent_pnr_frame"])[
                         np.where(
                             (np.array(c["parent_pnr_frame"]) >= start) & \
-                            (np.array(c["parent_pnr_frame"]) < end)
+                            (np.array(c["parent_pnr_frame"]) <= end)
                         )
                     ] for start, end in zip(
                         c["segment_start_frame"], c["segment_end_frame"]
@@ -514,11 +521,12 @@ class KeypointEstAnnotationHandler:
             "segment_end_frame": segment_end_frame,
             "hard_label": hardlabels,
             "soft_label": softlabels,
-            "nearest_pnr_diff": nearest_keyframe_dist,
+            # "nearest_pnr_diff": nearest_keyframe_dist,
         }).with_columns(
             pl.when(
                 pl.col("parent_pnr_frame").list.lengths() == 0
-            ).then(False).otherwise(True).alias("state_change")
+            ).then(False).otherwise(True).alias("state_change"),
+            pl.col("hard_label").cast(pl.List(pl.Int64))
         )
 
         return df
