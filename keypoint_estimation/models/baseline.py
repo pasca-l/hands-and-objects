@@ -7,7 +7,7 @@ class Baseline(nn.Module):
     def __init__(
         self,
         baseline="random", # ["random", "choice"]
-        out_channel=16,
+        num_out_frames=16,
         seed=42,
         choice_num=1,
     ):
@@ -16,7 +16,7 @@ class Baseline(nn.Module):
         self.dummy_param = nn.parameter.Parameter(torch.Tensor(0))
 
         self.baseline = baseline
-        self.out_channel = out_channel
+        self.out_channel = num_out_frames
         self.seed = seed
         self.choice_num = choice_num
 
