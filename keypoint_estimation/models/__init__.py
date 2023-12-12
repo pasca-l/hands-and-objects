@@ -1,4 +1,5 @@
 from .baseline import Baseline
+from .i3d_resnet import I3DResNet
 from .vivit import ViViT
 from .tsvivit import TSViViT
 from .mctvivit import MCTViViT
@@ -7,6 +8,9 @@ from .mctvivit import MCTViViT
 def set_model(name, **kwargs):
     if name == "baseline":
         return Baseline(**kwargs)
+
+    elif name == "i3dresnet":
+        return I3DResNet(**kwargs)
 
     elif name == "vivit":
         return ViViT(**kwargs)
