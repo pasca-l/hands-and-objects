@@ -6,7 +6,7 @@ from .mctvivit import MCTViViT
 
 def set_model(name, **kwargs):
     if name == "baseline":
-        return Baseline()
+        return Baseline(**kwargs)
 
     elif name == "vivit":
         return ViViT(**kwargs)
