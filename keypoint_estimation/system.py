@@ -13,10 +13,10 @@ class KeypointEstModule(L.LightningModule):
         model_name="vivit",
         pretrain_mode=None,
         weight_path=None,
+        mode="multilabel",
         lossfn_name="asyml",
         lr=1e-4,
-        mode="multilabel",
-        num_labels=16,
+        epochs=10,
         **kwargs,
     ):
         super().__init__()
@@ -40,7 +40,7 @@ class KeypointEstModule(L.LightningModule):
 
         self.metrics = set_metrics(
             task=mode,
-            num_labels=num_labels,
+            num_labels=16,
             thresholds=10,
         )
         self.meta_metrics = set_meta_metrics()
@@ -73,26 +73,29 @@ class KeypointEstModule(L.LightningModule):
             "optimizer": (optimizer := optim.AdamW(
                 self.model.parameters(),
                 lr=self.hparams.lr,
+                weight_decay=0.05,
             )),
             "lr_scheduler": optim.lr_scheduler.CosineAnnealingLR(
                 optimizer,
-                T_max=10,
+                T_max=self.hparams.epochs,
             ),
         }
         return opts
 
     def _shared_step(self, batch, phase="train"):
         # frames: torch.Size([b, frame_num, ch, w, h])
-        # labels: torch.Size([b, frame_num])
         frames, labels = batch[0], batch[1]
         frames = frames.float()
-        labels = labels.float()
+
+        # change labels according to mode
+        # labels: torch.Size([b, frame_num])
+        if self.hparams.mode == "binary":
+            labels = labels.max(dim=1, keepdim=True).values.int()
+        elif self.hparams.mode == "multilabel":
+            labels = labels.float()
 
         # expected frames: torch.Size([b, frame_num, ch, w, h]) as double
         logits = self.model(frames)
-
-        # expected labels: torch.Size([b, frame_num]) as floating point
-        # expected logits: torch.Size([b, frame_num])
         loss = self.lossfn(logits, labels)
         self.log(f"loss/{phase}", loss, on_step=False, on_epoch=True)
 
