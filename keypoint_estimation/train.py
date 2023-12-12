@@ -47,7 +47,7 @@ def main():
         sample_num=16,
         seg_arg=8,
         with_info=False,
-        neg_ratio=None,
+        fast_load=True,
     )
 
     classifier = KeypointEstModule(
