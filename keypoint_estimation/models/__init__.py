@@ -3,6 +3,7 @@ from .i3d_resnet import I3DResNet
 from .vivit import ViViT
 from .tsvivit import TSViViT
 from .mctvivit import MCTViViT
+from .pcvivit import PCViViT
 
 
 def set_model(name, **kwargs):
@@ -20,6 +21,9 @@ def set_model(name, **kwargs):
 
     elif name == "mctvivit":
         return MCTViViT(**kwargs)
+
+    elif name == "pcvivit":
+        return PCViViT(**kwargs)
 
     else:
         raise Exception(f"No model named: {name}")
