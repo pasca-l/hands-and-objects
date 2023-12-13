@@ -2,11 +2,13 @@ import os
 import lightning as L
 from torch.utils.data import DataLoader
 
-from ego4d import Ego4DObjnessClsDataset
-from egohos import EgoHOSObjnessClsDataset
-from oxford_iiit_pet import PetSegmentDataset
-from pascal_voc2012 import PascalVOC2012Dataset
-from transform import ObjnessClsDataPreprocessor
+from datasets import (
+    Ego4DObjnessClsDataset,
+    EgoHOSObjnessClsDataset,
+    PetSegmentDataset,
+    PascalVOC2012Dataset,
+    ObjnessClsDataPreprocessor,
+)
 
 
 class ObjnessClsDataModule(L.LightningDataModule):
@@ -28,9 +30,9 @@ class ObjnessClsDataModule(L.LightningDataModule):
     def __init__(
         self,
         dataset_dir,
-        dataset_mode='ego4d',  # ['ego4d', 'egohos']
+        dataset_mode="ego4d",  # ['ego4d', 'egohos']
         batch_size=4,
-        transform_mode='base',  # ['base', 'display', 'aug[num]']
+        transform_mode="base",  # ['base', 'display', 'aug[num]']
         with_info=False,
     ):
         super().__init__()
