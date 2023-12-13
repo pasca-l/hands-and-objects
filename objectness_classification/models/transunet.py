@@ -1,9 +1,8 @@
 import torch.nn as nn
 import einops
-import transformers
 import segmentation_models_pytorch as smp
 
-from vit import VisionTransformerWithoutHead
+from .vit import VisionTransformerWithoutHead
 
 
 class TransUNet(nn.Module):
