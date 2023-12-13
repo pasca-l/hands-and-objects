@@ -23,6 +23,8 @@ class ObjnessClsModule(L.LightningModule):
         self.save_hyperparameters()
         self.example_input_array = torch.Tensor(1, 3, 224, 224)
 
+        self.model_name = model_name
+        self.mode = mode
         self.lr = lr
         self.epochs = epochs
 
@@ -65,17 +67,31 @@ class ObjnessClsModule(L.LightningModule):
         return out
 
     def _set_optimizers(self):
-        opts = {
-            "optimizer": (optimizer := optim.Adam(
-                self.model.parameters(),
-                lr=self.lr,
-            )),
-            "lr_scheduler": optim.lr_scheduler.MultiStepLR(
-                optimizer,
-                milestones=list(range(2,self.epochs,2)),
-                gamma=0.1,
-            ),
-        }
+        if self.model_name == "unet" or "transunet":
+            opts = {
+                "optimizer": (optimizer := optim.Adam(
+                    self.model.parameters(),
+                    lr=self.lr,
+                )),
+                "lr_scheduler": optim.lr_scheduler.MultiStepLR(
+                    optimizer,
+                    milestones=list(range(2,self.epochs,2)),
+                    gamma=0.1,
+                ),
+            }
+
+        elif self.model_name == "segmenter":
+            opts = {
+                "optimizer": (optimizer := optim.SGD(
+                    self.model.parameters(),
+                    lr=self.lr,
+                )),
+                "lr_scheduler": optim.lr_scheduler.PolynomialLR(
+                    optimizer,
+                    total_iters=self.epochs,
+                    power=0.9,
+                )
+            }
 
         return opts
 
@@ -83,7 +99,7 @@ class ObjnessClsModule(L.LightningModule):
         frames, labels = batch[0], batch[1]
         logits = self.model(frames)
 
-        loss = self.lossfn(logits, labels[:,0:self.hparams.out_channels,:,:])
+        loss = self.lossfn(logits, labels[:,0:logits.size(1),:,:])
         self.log(f"loss/{phase}", loss, on_step=True, on_epoch=True)
 
         metric_dict = self._calc_metric(logits, labels)
@@ -99,8 +115,8 @@ class ObjnessClsModule(L.LightningModule):
         tp, fp, fn, tn = smp.metrics.get_stats(
             output,
             obj_mask.to(torch.int64),
-            mode=self.hparams.mode,
-            threshold=self.hparams.threshold,
+            mode=self.mode,
+            threshold=0.5,
         )
 
         iou = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
