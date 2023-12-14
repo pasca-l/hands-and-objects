@@ -4,6 +4,7 @@ from .vivit import ViViT
 from .tsvivit import TSViViT
 from .mctvivit import MCTViViT
 from .pcvivit import PCViViT
+from .hybrid_vivit import HybridViViT
 
 
 def set_model(name, **kwargs):
@@ -24,6 +25,9 @@ def set_model(name, **kwargs):
 
     elif name == "pcvivit":
         return PCViViT(**kwargs)
+
+    elif name == "hybrid":
+        return HybridViViT(**kwargs)
 
     else:
         raise Exception(f"No model named: {name}")
