@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import segmentation_models_pytorch as smp
 
-from vit import VisionTransformerWithoutHead
+from .vit import VisionTransformerWithoutHead
 
 
 # inspired from hybrid architecture of ViT
