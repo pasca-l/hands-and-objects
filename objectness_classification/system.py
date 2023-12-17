@@ -17,6 +17,7 @@ class ObjnessClsModule(L.LightningModule):
         lossfn_name="dice",
         lr=1e-4,
         epochs=10,
+        optim_name="adam",  # ["adam", "sgd"]
         **kwargs,
     ):
         super().__init__()
@@ -27,6 +28,7 @@ class ObjnessClsModule(L.LightningModule):
         self.mode = mode
         self.lr = lr
         self.epochs = epochs
+        self.optim_name = optim_name
 
         self.model = set_model(
             model_name,
@@ -67,7 +69,7 @@ class ObjnessClsModule(L.LightningModule):
         return out
 
     def _set_optimizers(self):
-        if self.model_name == "unet" or "transunet":
+        if self.optim_name == "adam":
             opts = {
                 "optimizer": (optimizer := optim.Adam(
                     self.model.parameters(),
@@ -80,7 +82,7 @@ class ObjnessClsModule(L.LightningModule):
                 ),
             }
 
-        elif self.model_name == "segmenter":
+        elif self.optim_name == "sgd":
             opts = {
                 "optimizer": (optimizer := optim.SGD(
                     self.model.parameters(),
