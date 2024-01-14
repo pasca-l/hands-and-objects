@@ -9,7 +9,7 @@ class BCELoss(nn.Module):
         super().__init__()
 
     def forward(self, input, target):
-        loss = nnf.binary_cross_entropy_with_logits(input, target)
+        loss = nnf.binary_cross_entropy_with_logits(input, target.float())
         return loss
 
 

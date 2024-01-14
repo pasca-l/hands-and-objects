@@ -9,7 +9,7 @@ class CELoss(nn.Module):
         super().__init__()
 
     def forward(self, input, target):
-        loss = nnf.cross_entropy(input, target)
+        loss = nnf.cross_entropy(input, target.float())
         return loss
 
 

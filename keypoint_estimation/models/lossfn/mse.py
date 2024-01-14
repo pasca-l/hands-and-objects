@@ -10,7 +10,7 @@ class MSELoss(nn.Module):
         super().__init__()
 
     def forward(self, input, target):
-        loss = nnf.mse_loss(input.sigmoid(), target)
+        loss = nnf.mse_loss(input.sigmoid(), target.float())
         return loss
 
 
@@ -32,7 +32,7 @@ class RMSELoss(nn.Module):
 
     def forward(self, input, target):
         eps = 1e-6
-        loss = torch.sqrt(nnf.mse_loss(input.sigmoid(), target) + eps)
+        loss = torch.sqrt(nnf.mse_loss(input.sigmoid(), target.float()) + eps)
         return loss
 
 
