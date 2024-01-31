@@ -1,6 +1,5 @@
 import os
 import argparse
-import torch
 import lightning as L
 
 from datamodule import KeypointEstDataModule
