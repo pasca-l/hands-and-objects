@@ -21,7 +21,7 @@ def option_parser():
     parser.add_argument(
         "-m", "--model", type=str,
         default="unet",
-        choices=["unet", "baseline", "transunet", "segmenter"],
+        choices=["unet", "baseline", "transunet", "setr"],
     )
     parser.add_argument("--log_dir", type=str, default="./logs/")
     parser.add_argument("--exp_dir", type=str, default="")

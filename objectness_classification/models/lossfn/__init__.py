@@ -17,4 +17,3 @@ def set_lossfn(name, mode="multilabel"):
 
     else:
         raise Exception(f"No lossfn named: {name}")
-

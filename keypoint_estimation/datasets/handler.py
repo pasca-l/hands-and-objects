@@ -362,9 +362,15 @@ class KeypointEstAnnotationHandler:
             (pl.col("parent_end_frame")+1).alias("segment_end_frame"),
             pl.col("state_change"),
         ).with_columns([
-            pl.col("video_uid").apply(lambda _: []).cast(pl.List(pl.Int64)).alias("parent_pnr_frame"),
-            pl.col("video_uid").apply(lambda c: np.zeros(self.sample_num).tolist()).cast(pl.List(pl.Int64)).alias("hard_label"),
-            pl.col("video_uid").apply(lambda c: np.zeros(self.sample_num).tolist()).alias("soft_label"),
+            pl.col("video_uid").apply(
+                lambda _: []).cast(pl.List(pl.Int64)
+            ).alias("parent_pnr_frame"),
+            pl.col("video_uid").apply(
+                lambda c: np.zeros(self.sample_num).tolist()
+            ).cast(pl.List(pl.Int64)).alias("hard_label"),
+            pl.col("video_uid").apply(
+                lambda c: np.zeros(self.sample_num).tolist()
+            ).alias("soft_label"),
             pl.struct(
                 ["segment_start_frame", "segment_end_frame"],
             ).apply(
