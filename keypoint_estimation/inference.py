@@ -21,8 +21,8 @@ def option_parser():
         choices=["resnet", "vivit"],
     )
     parser.add_argument("-w", "--weight_path", type=str, required=True)
-    parser.add_argument("-l", "--log_dir", type=str, default="./logs/")
-    parser.add_argument("-e", "--exp_dir", type=str, default="inference")
+    parser.add_argument("--log_dir", type=str, default="./logs/")
+    parser.add_argument("--exp_dir", type=str, default="inference")
 
     return parser.parse_args()
 
