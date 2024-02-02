@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader
 from datasets import (
     Ego4DObjnessClsDataset,
     EgoHOSObjnessClsDataset,
-    PetSegmentDataset,
     PascalVOC2012Dataset,
     ObjnessClsDataPreprocessor,
 )
@@ -99,31 +98,6 @@ class ObjnessClsDataModule(L.LightningDataModule):
                         with_info=self.with_info,
                     )
                 ]
-
-            if stage == "predict":
-                self.predict_data = None
-
-        elif self.dataset_mode == 'pet':
-            if stage == "fit" or stage is None:
-                self.train_data = PetSegmentDataset(
-                    dataset_dir=self.dataset_dir,
-                    transform=self.transform,
-                    with_info=self.with_info,
-                )
-                self.val_data = PetSegmentDataset(
-                    dataset_dir=self.dataset_dir,
-                    phase='valid',
-                    transform=self.transform,
-                    with_info=self.with_info,
-                )
-
-            if stage == "test":
-                self.test_data = PetSegmentDataset(
-                    dataset_dir=self.dataset_dir,
-                    phase='test',
-                    transform=self.transform,
-                    with_info=self.with_info,
-                )
 
             if stage == "predict":
                 self.predict_data = None

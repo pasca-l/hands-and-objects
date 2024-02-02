@@ -43,6 +43,3 @@ $ bash download_datasets.sh
 
 ### [PASCAL VOC2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012)
 1. Download dataset from [`Development Kit` section](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/#devkit).
-
-### [Oxford-IIIT Pet](https://www.robots.ox.ac.uk/~vgg/data/pets/)
-1. Download dataset from `Downloads` section.
