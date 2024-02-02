@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import pandas as pd
 from PIL import Image
-import torch
 from torch.utils.data import Dataset
 
 
