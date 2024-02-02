@@ -17,3 +17,32 @@ To use CUDA version of `pytorch` libraries, use the following command. This repl
 ```shell
 $ make gpu_setting
 ```
+
+## Datasets
+### [Ego4D](https://github.com/facebookresearch/Ego4d)
+1. Download [Ego4D CLI](https://github.com/facebookresearch/Ego4d/blob/main/ego4d/cli/README.md).
+```shell
+$ pip install ego4d
+```
+
+2. Run command, below is from the basic usage.
+```shell
+$ ego4d --output_directory="~/ego4d_data" --datasets full_scale annotations --metadata
+```
+
+### [EgoHOS](https://github.com/owenzlz/EgoHOS)
+1. Clone repository.
+```shell
+$ git clone https://github.com/owenzlz/EgoHOS
+```
+
+2. Download dataset from script.
+```shell
+$ bash download_datasets.sh
+```
+
+### [PASCAL VOC2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012)
+1. Download dataset from [`Development Kit` section](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/#devkit).
+
+### [Oxford-IIIT Pet](https://www.robots.ox.ac.uk/~vgg/data/pets/)
+1. Download dataset from `Downloads` section.
