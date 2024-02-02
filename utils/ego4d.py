@@ -2,10 +2,11 @@ import os
 import cv2
 import glob
 from tqdm import tqdm
+from dotenv import load_dotenv
 import pexpect
 
 
-class VideoExtractor:
+class Ego4DDatasetUtility:
     def __init__(
         self,
         info,
@@ -17,6 +18,11 @@ class VideoExtractor:
         self.frame_dir = os.path.join(data_dir, "frames")
         self.subclip_dir = os.path.join(data_dir, "subclips")
         self.mode = mode
+
+        load_dotenv()
+        self.rmt_host = os.environ["REMOTE_HOST"]
+        self.rmt_path = "/home/ubuntu/data/ego4d/v2/frames"
+        self.rmt_pass = os.environ["REMOTE_PASS"]
 
         if self.mode == "center":
             self.iterator = info.select(
@@ -109,10 +115,10 @@ class VideoExtractor:
                     raise Exception(f"Video does not exist at: {video_path}")
                 video = cv2.VideoCapture(video_path)
 
-                for i, c in enumerate(sorted(frame_nums)):
-                    pbar.set_postfix({"frame": c})
+                for i, f in enumerate(sorted(frame_nums)):
+                    pbar.set_postfix({"frame": f})
 
-                    video.set(cv2.CAP_PROP_POS_FRAMES, c)
+                    video.set(cv2.CAP_PROP_POS_FRAMES, f)
                     ret, frame = video.read()
                     if ret == False:
                         break
@@ -122,55 +128,36 @@ class VideoExtractor:
 
                     if resize:
                         frame = cv2.resize(frame, (224, 224))
-                    cv2.imwrite(os.path.join(save_dir, f"{c}.jpg"), frame)
+                    cv2.imwrite(os.path.join(save_dir, f"{f}.jpg"), frame)
 
                 video.release()
 
-    def extract_subclip(self):
+    def copy_from_remote(self):
         """
-        Trims video to annotated range of 8s, under
-        "DATA_DIR/subclips/{video_id}_{start_frame}_{end_frame}.mp4".
+        Copies necessary frames from remote storage, under "DATA_DIR/frames/{video_uid}/*.jpg".
         """
-        os.makedirs(self.subclip_dir, exist_ok=True)
+        os.makedirs(self.frame_dir, exist_ok=True)
 
-        for video_uid, start_frame, end_frame in tqdm(
-            self.iterator,
-            desc="Trimming annotated range",
-        ):
-            save_as = os.path.join(
-                self.subclip_dir,
-                f"{video_uid}_{start_frame}_{end_frame}.mp4",
-            )
-            if os.path.exists(save_as):
-                continue
+        frame_dict = self.find_missing_frames()
 
-            video_path = os.path.join(self.video_dir, f"{video_uid}.mp4")
-            video = cv2.VideoCapture(video_path)
-            fps = video.get(cv2.CAP_PROP_FPS)
-            v_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-            v_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            v_size = (v_width, v_height)
+        with tqdm(frame_dict.items()) as pbar:
+            for video_uid, frame_nums in pbar:
+                pbar.set_description(f"Extracting frames from {video_uid}")
 
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            writer = cv2.VideoWriter(save_as, fourcc, fps, v_size)
-
-            for c in range(end_frame + 1):
-                ret, frame = video.read()
-                if ret == True and start_frame <= c:
-                    writer.write(frame)
-
-            writer.release()
-            video.release()
-
-    def copy_from_remote(self, df):
-        iter = df.iter_rows()
-        for vid, _, _, _, _, _, _, _, _, sample, _ in iter:
-            for num in sample:
-                if os.path.exists(f"/Users/shionyamadate/Documents/datasets/ego4d/v2/frames/{vid}/{num}.jpg"):
+                if len(frame_nums) == 0:
                     continue
-                else:
-                    print(f"{vid}/{num}.jpg")
-                    scp = pexpect.spawn(f"scp ubuntu@adam:/home/ubuntu/data/ego4d/v2/frames/{vid}/{num}.jpg /Users/shionyamadate/Documents/datasets/ego4d/v2/frames/{vid}/{num}.jpg")
+
+                save_dir = os.path.join(self.frame_dir, video_uid)
+                os.makedirs(save_dir, exist_ok=True)
+
+                for f in sorted(frame_nums):
+                    pbar.set_postfix({"frame": f})
+
+                    scp = pexpect.spawn(
+                        f"scp \
+                        {self.rmt_host}:{self.rmt_path}/{video_uid}/{f}.jpg \
+                        {self.frame_dir}/{video_uid}/{f}.jpg"
+                    )
                     scp.expect('.ssword:*')
-                    scp.sendline("aoki0828")
+                    scp.sendline(self.rmt_pass)
                     scp.interact()
